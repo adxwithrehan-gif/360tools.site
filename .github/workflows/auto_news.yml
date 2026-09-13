@@ -1,27 +1,30 @@
-name: Auto News Publisher
+name: Automated Real-Time News Publisher
 
 on:
   schedule:
-    - cron: '*/30 * * * *' # Runs every 30 minutes
+    - cron: '*/30 * * * *'  # Har 30 minute baad automated run hoga
   workflow_dispatch:
 
 jobs:
-  build:
+  publish-news:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # GitHub token ko automatically repo update karne ki ijazat deta hai
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: setup-python@v4
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Run News Scraper Script
-        run: python scripts/auto_news.py
+      - name: Install dependencies
+        run: pip install requests
 
-      - name: Commit and Push Changes
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: 'feat: auto-publish latest trending news article'
-          branch: main
+      - name: Run News Bot Script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python auto_news_bot.py
