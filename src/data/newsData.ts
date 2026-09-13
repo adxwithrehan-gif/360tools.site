@@ -12,7 +12,6 @@ export interface NewsItem {
 export const newsData: NewsItem[] = [
   {
     id: "news-initial-1",
-    name: "",
     title: "Welcome to Global Trending News Hub",
     slug: "welcome-to-global-trending-news-hub",
     content: "Our automated platform brings you the latest breaking updates and trending topics from across the globe. Stay tuned as our system refreshes and publishes real-time news articles every 30 minutes to keep you ahead of the curve.",
