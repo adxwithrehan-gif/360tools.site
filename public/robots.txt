@@ -1,21 +1,4 @@
 User-agent: *
 Allow: /
 
-# Googlebot specific optimizations
-User-agent: Googlebot
-Allow: /
-Allow: /*?tool=*
-Allow: /*?category=*
-Allow: /*?page=*
-
-# Bingbot specific optimizations
-User-agent: Bingbot
-Allow: /
-Allow: /*?tool=*
-Allow: /*?category=*
-Allow: /*?page=*
-
-# Crawl Delay & Sitemap
-Crawl-delay: 0
 Sitemap: https://360tools.site/sitemap.xml
-Host: https://360tools.site
