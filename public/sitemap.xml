@@ -1,19 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  
+  <!-- Main Homepage -->
   <url>
     <loc>https://360tools.site/</loc>
     <lastmod>2026-09-13</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
+
+  <!-- Tool 1 -->
   <url>
-    <loc>https://360tools.site/tool-name-1</loc>
+    <loc>https://360tools.site/age-calculator</loc>
     <lastmod>2026-09-13</lastmod>
     <priority>0.8</priority>
   </url>
+
+  <!-- Tool 2 -->
   <url>
-    <loc>https://360tools.site/tool-name-2</loc>
+    <loc>https://360tools.site/image-resizer</loc>
     <lastmod>2026-09-13</lastmod>
     <priority>0.8</priority>
   </url>
+
+  <!-- Baqi tamam tools ke <url> blocks yahan paste karte jayein... -->
+
 </urlset>
