@@ -3,7 +3,7 @@ import { CATEGORIES, TOOLS } from './data/toolsData';
 import { ToolCategory, ToolItem } from './types';
 import { ToolView } from './components/tools/ToolView';
 import { StaticPages } from './components/pages/StaticPages';
-import { News } from './pages/News';
+import { News } from './components/pages/News';
 import { IconRenderer } from './components/common/IconRenderer';
 import { ToolCard } from './components/common/ToolCard';
 import { NativeAdCard } from './components/ads/NativeAdCard';
