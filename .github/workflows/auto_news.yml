@@ -1,8 +1,8 @@
-name: Auto News Poster
+name: Auto News Bot
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Har 30 minute baad chalega
+    - cron: '*/30 * * * *'  # Har 30 minute baad run hoga
   workflow_dispatch:
 
 jobs:
@@ -31,6 +31,6 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "bot@users.noreply.github.com"
-          git add .
-          git commit -m "Auto-posted new trending article" || exit 0
+          git add news/
+          git commit -m "Auto-posted new Google Trends article [skip ci]" || exit 0
           git push
