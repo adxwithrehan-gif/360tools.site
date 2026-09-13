@@ -254,6 +254,19 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
             <div className="pt-2">
               <ToolAdSlot id="tool-ad-1-post-workspace" variant="banner" />
             </div>
+
+            {/* Concise 100-150 Word SEO-Optimized Description Block with Natural Keyword Variations */}
+            <section aria-label={`About ${tool.name}`} className={`p-6 rounded-2xl border ${
+              isDark ? 'bg-slate-900/60 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200/80 text-slate-700'
+            } space-y-2.5 leading-relaxed text-sm`}>
+              <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-rose-500" />
+                About {tool.name} — Free Online {tool.category.toUpperCase()} Utility
+              </h2>
+              <p>
+                Welcome to the free online <strong>{tool.name}</strong> on 360tools.site. Whether you are looking for an instant, high-precision solution for daily tasks, academic computations, or professional production workflows, this online tool executes with exceptional speed directly inside your browser. Unlike traditional converters and calculators that demand software installations, user registration, or paid subscriptions, our utility runs 100% client-side in your local device memory. Your confidential numbers, documents, and media remain strictly private and never touch remote cloud servers. Enjoy unlimited operations without watermarks, daily quotas, or download restrictions across mobile, tablet, and desktop screens. Experience the fastest, most secure, and completely free online {tool.name.toLowerCase()} designed for modern productivity.
+              </p>
+            </section>
           </div>
 
           <div className="xl:col-span-4 space-y-6">
