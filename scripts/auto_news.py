@@ -4,7 +4,6 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-# 1. Fetch Google Trends RSS (Global / Worldwide or specific region)
 def fetch_google_trends():
     url = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
@@ -13,50 +12,50 @@ def fetch_google_trends():
             xml_data = response.read()
             root = ET.fromstring(xml_data)
             trends = []
-            # Parse RSS feed items
             for item in root.findall('.//item'):
                 title = item.find('title')
                 if title is not None and title.text:
                     trends.append(title.text.strip())
-            return trends[:5] # Top 5 trends
+            return trends[:5]
     except Exception as e:
         print(f"Error fetching trends: {e}")
         return []
 
-# 2. Generate Article Content
-def generate_article(trend_title):
+def update_news_file(trend_title):
+    file_path = "src/data/newsData.ts"
+    if not os.path.exists(file_path):
+        return
+
     slug = trend_title.lower().replace(" ", "-").replace("?", "").replace("!", "")
     slug = "".join([c for c in slug if c.isalnum() or c == '-'])
     
-    article = {
-        "id": f"news-{int(datetime.now().timestamp())}",
-        "title": f"Latest Update: Everything you need to know about {trend_title}",
-        "slug": slug,
-        "content": f"In recent developments, {trend_title} has taken the internet by storm, sparking widespread global discussions across social media platforms and news outlets. Analysts and users alike are closely monitoring the situation as new updates unfold. Stay tuned to our platform for real-time coverage and comprehensive analysis on this trending topic.",
-        "snippet": f"Discover the latest breaking updates, background details, and global reactions regarding {trend_title}.",
-        "category": "Global News",
-        "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "image": "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop&q=60"
-    }
-    return article
+    new_id = f"news-{int(datetime.now().timestamp())}"
+    current_date = datetime.now().strftime("%Y-%m-%d %H:%M")
+    
+    new_article_code = f"""  {{
+    id: "{new_id}",
+    title: "Latest Update: {trend_title}",
+    slug: "{slug}",
+    content: "In recent global developments, {trend_title} has captured significant attention across social media and search platforms. Analysts and digital communities are actively tracking the implications as fresh updates emerge.",
+    snippet: "Explore the latest updates and global discussions surrounding {trend_title}.",
+    category: "Global News",
+    date: "{current_date}",
+    image: "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=800&auto=format&fit=crop&q=60"
+  }},"""
 
-# 3. Update News Data File
-def update_news_file(new_article):
-    file_path = "src/data/newsData.ts"
-    
-    # Read existing content or initialize
-    existing_news = []
-    if os.path.exists(file_path):
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            # Simple extraction or JSON parsing logic depending on file format
-    
-    # For simplicity, we write back a structured TypeScript export file
-    print(f"Generated new article: {new_article['title']}")
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Insert new article right after `export const newsData: NewsItem[] = [`
+    target = "export const newsData: NewsItem[] = ["
+    if target in content:
+        updated_content = content.replace(target, f"{target}\n{new_article_code}")
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(updated_content)
+        print(f"Successfully added: {trend_title}")
 
 if __name__ == "__main__":
     trends = fetch_google_trends()
     if trends:
-        for trend in trends[:1]: # Process top 1 trend per run
-            art = generate_article(trend)
-            update_news_file(art)
+        # Add the top trending topic automatically
+        update_news_file(trends[0])
