@@ -3,15 +3,14 @@ import { CATEGORIES, TOOLS } from './data/toolsData';
 import { ToolCategory, ToolItem } from './types';
 import { ToolView } from './components/tools/ToolView';
 import { StaticPages } from './components/pages/StaticPages';
+import { News } from './pages/News';
 import { IconRenderer } from './components/common/IconRenderer';
 import { ToolCard } from './components/common/ToolCard';
-import { AdSlot } from './components/ads/AdSlot';
 import { NativeAdCard } from './components/ads/NativeAdCard';
 import { ADS_CONFIG } from './config/adsConfig';
 import { InstallShortcutModal } from './components/common/InstallShortcutModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
-import { injectToolSEO, injectCategorySEO, resetDefaultSEO, updateSEOForTool } from './utils/seo';
-import { getToolTheme } from './utils/toolTheme';
+import { injectToolSEO, injectCategorySEO, resetDefaultSEO } from './utils/seo';
 import {
   Search,
   Lock,
@@ -20,25 +19,14 @@ import {
   Menu,
   X,
   ChevronRight,
-  ShieldCheck,
-  HelpCircle,
-  FileText,
-  Calculator,
-  Activity,
-  Film,
-  DollarSign,
-  ArrowRight,
-  ExternalLink,
-  Download,
-  Smartphone,
-  Laptop
+  Download
 } from 'lucide-react';
 
 export default function App() {
   // Navigation State
   const [currentToolId, setCurrentToolId] = useState<string | null>(null);
   const [currentCategory, setCurrentCategory] = useState<ToolCategory | 'all'>('all');
-  const [currentPage, setCurrentPage] = useState<'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact' | null>(null);
+  const [currentPage, setCurrentPage] = useState<'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact' | 'news' | null>(null);
 
   // Search & UI State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -48,10 +36,6 @@ export default function App() {
   // PWA Install Engine
   const {
     isInstallable,
-    isInstalled,
-    isIOS,
-    isAndroid,
-    isDesktop,
     install: triggerNativeInstall,
   } = usePWAInstall();
 
@@ -68,7 +52,7 @@ export default function App() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Synchronize state with URL paths & search params (crawlable clean URLs for all 360 tools)
+  // Synchronize state with URL paths & search params
   useEffect(() => {
     const handleUrlChange = () => {
       const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
@@ -76,9 +60,8 @@ export default function App() {
 
       let targetToolId: string | null = null;
       let targetCategory: ToolCategory | null = null;
-      let targetPage: 'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact' | null = null;
+      let targetPage: 'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact' | 'news' | null = null;
 
-      // 1. Path-based routing: /tools/:toolSlug or /tool/:toolSlug
       if (pathname.startsWith('/tools/')) {
         targetToolId = decodeURIComponent(pathname.slice('/tools/'.length));
       } else if (pathname.startsWith('/tool/')) {
@@ -88,10 +71,9 @@ export default function App() {
         if (['pdf', 'finance', 'math', 'health', 'media', 'utility', 'developer'].includes(cat)) {
           targetCategory = cat;
         }
-      } else if (['/privacy', '/terms', '/disclaimer', '/about', '/contact'].includes(pathname)) {
+      } else if (['/privacy', '/terms', '/disclaimer', '/about', '/contact', '/news'].includes(pathname)) {
         targetPage = pathname.slice(1) as any;
       } else if (pathname !== '/') {
-        // Direct tool slug: /:slug
         const slug = decodeURIComponent(pathname.slice(1));
         const found = TOOLS.find((t) => t.id === slug);
         if (found) {
@@ -99,7 +81,6 @@ export default function App() {
         }
       }
 
-      // 2. Query param fallback: ?tool=slug, ?category=cat, ?page=page
       if (!targetToolId && !targetCategory && !targetPage) {
         const toolParam = searchParams.get('tool');
         const pageParam = searchParams.get('page');
@@ -107,14 +88,13 @@ export default function App() {
 
         if (toolParam) {
           targetToolId = toolParam;
-        } else if (pageParam && ['privacy', 'terms', 'disclaimer', 'about', 'contact'].includes(pageParam)) {
+        } else if (pageParam && ['privacy', 'terms', 'disclaimer', 'about', 'contact', 'news'].includes(pageParam)) {
           targetPage = pageParam as any;
         } else if (catParam && ['pdf', 'finance', 'math', 'health', 'media', 'utility', 'developer'].includes(catParam)) {
           targetCategory = catParam as ToolCategory;
         }
       }
 
-      // 3. Apply state and dynamic SEO meta tags
       if (targetToolId) {
         const found = TOOLS.find((t) => t.id === targetToolId);
         if (found) {
@@ -140,7 +120,6 @@ export default function App() {
         return;
       }
 
-      // Default home
       setCurrentToolId(null);
       setCurrentPage(null);
       setCurrentCategory('all');
@@ -168,7 +147,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Navigation handlers with clean crawlable paths and SEO meta updates
   const navigateToTool = (toolId: string) => {
     setCurrentToolId(toolId);
     setCurrentPage(null);
@@ -180,7 +158,7 @@ export default function App() {
     injectToolSEO(toolId);
   };
 
-  const navigateToPage = (page: 'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact') => {
+  const navigateToPage = (page: 'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact' | 'news') => {
     setCurrentPage(page);
     setCurrentToolId(null);
     setMobileMenuOpen(false);
@@ -220,7 +198,6 @@ export default function App() {
     resetDefaultSEO();
   };
 
-  // Filtered tools according to category and live search
   const filteredTools = useMemo(() => {
     let result = TOOLS;
 
@@ -242,14 +219,12 @@ export default function App() {
     return result;
   }, [currentCategory, searchQuery]);
 
-  // Interspersed exactly 50 Native Banner Ads across the 360 Tools Grid
   const gridWithAds = useMemo(() => {
     if (!ADS_CONFIG.enabled || filteredTools.length === 0) {
       return filteredTools.map((tool) => ({ type: 'tool' as const, tool }));
     }
 
     const totalAds = Math.min(ADS_CONFIG.homeGridAds.length, 50);
-    // Calculate step interval so 50 ads are distributed evenly across tools
     const step = Math.max(3, Math.floor(filteredTools.length / 50));
 
     const items: Array<
@@ -277,12 +252,10 @@ export default function App() {
     return items;
   }, [filteredTools]);
 
-  // Active Tool metadata
   const activeTool = useMemo(() => {
     return TOOLS.find((t) => t.id === currentToolId) || null;
   }, [currentToolId]);
 
-  // Related tools for the active tool
   const relatedTools = useMemo(() => {
     if (!activeTool) return [];
     return TOOLS.filter((t) => t.category === activeTool.category && t.id !== activeTool.id).slice(0, 6);
@@ -290,10 +263,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] text-slate-800 flex flex-col font-sans selection:bg-red-500 selection:text-white">
-      {/* -------------------- Global Header (iLovePDF Clean Style) -------------------- */}
+      {/* Header */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Logo & Brand Name */}
           <div
             onClick={() => navigateToHome('all')}
             className="flex items-center gap-3 cursor-pointer select-none group"
@@ -311,8 +283,21 @@ export default function App() {
             </div>
           </div>
 
-          {/* Desktop Navigation Links */}
           <nav className="hidden lg:flex items-center gap-1 text-sm font-semibold text-slate-700">
+            <a
+              href="/news"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToPage('news');
+                }
+              }}
+              className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
+                currentPage === 'news' ? 'text-[#e5322d] bg-red-50/70' : ''
+              }`}
+            >
+              News
+            </a>
             <a
               href="/tools/merge-pdf"
               onClick={(e) => {
@@ -326,34 +311,6 @@ export default function App() {
               }`}
             >
               Merge PDF
-            </a>
-            <a
-              href="/tools/scientific-calculator"
-              onClick={(e) => {
-                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                  e.preventDefault();
-                  navigateToTool('scientific-calculator');
-                }
-              }}
-              className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
-                currentToolId === 'scientific-calculator' ? 'text-[#e5322d] bg-red-50/70' : ''
-              }`}
-            >
-              Scientific Math
-            </a>
-            <a
-              href="/tools/stylish-font-generator"
-              onClick={(e) => {
-                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                  e.preventDefault();
-                  navigateToTool('stylish-font-generator');
-                }
-              }}
-              className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
-                currentToolId === 'stylish-font-generator' ? 'text-[#e5322d] bg-red-50/70' : ''
-              }`}
-            >
-              Stylish Fonts
             </a>
             <a
               href="/category/math"
@@ -384,48 +341,6 @@ export default function App() {
               Finance
             </a>
             <a
-              href="/category/health"
-              onClick={(e) => {
-                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                  e.preventDefault();
-                  navigateToCategory('health');
-                }
-              }}
-              className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
-                !currentToolId && currentCategory === 'health' ? 'text-[#e5322d] bg-red-50/70' : ''
-              }`}
-            >
-              Health
-            </a>
-            <a
-              href="/category/utility"
-              onClick={(e) => {
-                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                  e.preventDefault();
-                  navigateToCategory('utility');
-                }
-              }}
-              className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
-                !currentToolId && currentCategory === 'utility' ? 'text-[#e5322d] bg-red-50/70' : ''
-              }`}
-            >
-              Utility
-            </a>
-            <a
-              href="/category/developer"
-              onClick={(e) => {
-                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                  e.preventDefault();
-                  navigateToCategory('developer');
-                }
-              }}
-              className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
-                !currentToolId && currentCategory === 'developer' ? 'text-[#e5322d] bg-red-50/70' : ''
-              }`}
-            >
-              Developer
-            </a>
-            <a
               href="/"
               onClick={(e) => {
                 if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
@@ -441,14 +356,10 @@ export default function App() {
             </a>
           </nav>
 
-          {/* Right Action: Install Button, Search Bar, Mobile Menu Toggle */}
           <div className="flex items-center gap-2">
-            {/* Shortcut / Install Button for Desktop and Mobile */}
             <button
               onClick={handleInstallClick}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 bg-red-50 hover:bg-red-100 text-[#e5322d] border border-red-200/90 rounded-xl text-xs font-bold transition-all shadow-2xs hover:scale-[1.02] cursor-pointer"
-              title="Add 360tools Shortcut to Desktop or Mobile"
-              id="header-install-btn"
             >
               <Download className="w-3.5 h-3.5 text-[#e5322d] shrink-0" />
               <span className="hidden sm:inline">Install App</span>
@@ -469,21 +380,17 @@ export default function App() {
               </kbd>
             </button>
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100"
-              aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-5 space-y-2">
-            {/* Mobile Install App Button */}
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
@@ -497,6 +404,20 @@ export default function App() {
               </span>
               <ChevronRight className="w-4 h-4 text-red-400" />
             </button>
+
+            <a
+              href="/news"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToPage('news');
+                }
+              }}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-50 flex items-center justify-between text-slate-800"
+            >
+              <span>Latest News</span>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </a>
 
             <a
               href="/"
@@ -542,9 +463,8 @@ export default function App() {
         )}
       </header>
 
-      {/* -------------------- Main Content Container -------------------- */}
+      {/* Main Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        {/* VIEW 1: Static Legal / Content Pages */}
         {currentPage ? (
           <div className="space-y-6">
             <button
@@ -553,10 +473,13 @@ export default function App() {
             >
               ← Back to All Tools
             </button>
-            <StaticPages page={currentPage} />
+            {currentPage === 'news' ? (
+              <News />
+            ) : (
+              <StaticPages page={currentPage as any} />
+            )}
           </div>
         ) : activeTool ? (
-          /* VIEW 2: Single Tool Interactive Workspace with Individual SEO Indexing */
           <ToolView
             tool={activeTool}
             onBack={() => navigateToHome(activeTool.category)}
@@ -564,9 +487,8 @@ export default function App() {
             relatedTools={relatedTools}
           />
         ) : (
-          /* VIEW 3: Homepage with iLovePDF Design, Clean Hero, Search & 5-Column Tool Cards Grid */
           <div className="space-y-10">
-            {/* Hero Section (iLovePDF Style) */}
+            {/* Hero Section */}
             <div className="text-center max-w-3xl mx-auto space-y-4 pt-2">
               <h1 className="text-3xl sm:text-5xl font-black text-slate-800 tracking-tight leading-tight">
                 Every tool you need in one place
@@ -577,7 +499,7 @@ export default function App() {
                 metrics, and edit media without uploading your files to any remote server.
               </p>
 
-              {/* Centered Search Bar */}
+              {/* Search Bar */}
               <div className="relative max-w-xl mx-auto pt-2">
                 <div className="relative">
                   <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
@@ -605,7 +527,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* Category Filter Tabs (iLovePDF Style) */}
+            {/* Category Filter Tabs */}
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
               <button
                 onClick={() => navigateToHome('all')}
@@ -637,16 +559,13 @@ export default function App() {
               })}
             </div>
 
-            {/* Tool Cards Grid — Exact Responsive Grid with 40+ Seamlessly Interspersed Native Ads */}
+            {/* Tools Grid */}
             {filteredTools.length === 0 ? (
               <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                   <Search className="w-6 h-6" />
                 </div>
                 <h3 className="text-base font-bold text-slate-800">No tools found matching "{searchQuery}"</h3>
-                <p className="text-xs text-slate-500">
-                  Try searching for keywords like "pdf", "loan", "matrix", "fonts", "age", or "calorie".
-                </p>
                 <button
                   onClick={() => {
                     setSearchQuery('');
@@ -659,7 +578,6 @@ export default function App() {
               </div>
             ) : (
               <div className="space-y-8">
-                {/* Responsive Card Grid with 40+ Native Banner Ads styled like natural tool cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4 md:gap-5">
                   {gridWithAds.map((item, idx) => {
                     if (item.type === 'tool') {
@@ -677,63 +595,14 @@ export default function App() {
                 </div>
               </div>
             )}
-
-            {/* Platform Trust & Privacy Section */}
-            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-xs">
-              <div className="text-center max-w-2xl mx-auto space-y-2 mb-8">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#e5322d]">
-                  Why 360tools?
-                </span>
-                <h3 className="text-2xl sm:text-3xl font-black text-slate-900">
-                  A Better, Faster, and Truly Private Multi-Tool Suite
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-500">
-                  Designed from the ground up to respect user confidentiality and perform instant calculations with zero cloud latency.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-red-50 text-[#e5322d] flex items-center justify-center">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-slate-900 text-sm">Zero Server Uploads</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    Most online converters silently transmit your confidential documents, tax calculations, and photos to remote servers.
-                    Here, every operation runs 100% locally in your browser memory.
-                  </p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <Zap className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-slate-900 text-sm">Instant Execution</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    No queuing or processing delays. PDF manipulation, mathematical solvers, and media processing execute at the full speed of your computer hardware.
-                  </p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Globe className="w-5 h-5" />
-                  </div>
-                  <h4 className="font-bold text-slate-900 text-sm">Always Free & No Account Needed</h4>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    No paywalls, subscriptions, or login requirements. Access all tools unlimited times directly from any desktop or mobile browser.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </main>
 
-      {/* -------------------- iLovePDF Style Footer (Clean, No Ads) -------------------- */}
+      {/* Footer */}
       <footer className="bg-white border-t border-slate-200/80 mt-16 text-slate-600 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
-            {/* Brand column */}
             <div className="col-span-2 space-y-3">
               <div
                 onClick={() => navigateToHome('all')}
@@ -751,12 +620,25 @@ export default function App() {
               </p>
             </div>
 
-            {/* Col 1: Popular PDF Tools */}
             <div className="space-y-2.5">
               <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
-                PDF Solutions
+                Quick Links
               </h4>
               <ul className="space-y-2 text-slate-500">
+                <li>
+                  <a
+                    href="/news"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToPage('news');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
+                    Latest News
+                  </a>
+                </li>
                 <li>
                   <a
                     href="/tools/merge-pdf"
@@ -771,145 +653,9 @@ export default function App() {
                     Merge PDF
                   </a>
                 </li>
-                <li>
-                  <a
-                    href="/tools/image-to-pdf"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToTool('image-to-pdf');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Image to PDF
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/tools/split-pdf"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToTool('split-pdf');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Split PDF
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/tools/watermark-pdf"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToTool('watermark-pdf');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Watermark PDF
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/tools/text-to-pdf"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToTool('text-to-pdf');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Text to PDF
-                  </a>
-                </li>
               </ul>
             </div>
 
-            {/* Col 2: Calculators */}
-            <div className="space-y-2.5">
-              <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
-                Calculators & Utilities
-              </h4>
-              <ul className="space-y-2 text-slate-500">
-                <li>
-                  <a
-                    href="/tools/scientific-calculator"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToTool('scientific-calculator');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Scientific Math
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/tools/mortgage-calculator"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToTool('mortgage-calculator');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Mortgage Calculator
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/tools/bmi-calculator"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToTool('bmi-calculator');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    BMI Calculator
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/tools/stylish-font-generator"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToTool('stylish-font-generator');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Stylish Font Generator
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/tools/age-calculator"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToTool('age-calculator');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Age & Birthday
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Col 3: Legal & Company */}
             <div className="space-y-2.5">
               <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
                 Company & Legal
@@ -931,34 +677,6 @@ export default function App() {
                 </li>
                 <li>
                   <a
-                    href="/terms"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToPage('terms');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="/disclaimer"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToPage('disclaimer');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Disclaimer
-                  </a>
-                </li>
-                <li>
-                  <a
                     href="/about"
                     onClick={(e) => {
                       if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
@@ -971,39 +689,21 @@ export default function App() {
                     About Us
                   </a>
                 </li>
-                <li>
-                  <a
-                    href="/contact"
-                    onClick={(e) => {
-                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        e.preventDefault();
-                        navigateToPage('contact');
-                      }
-                    }}
-                    className="hover:text-[#e5322d]"
-                  >
-                    Contact
-                  </a>
-                </li>
               </ul>
             </div>
           </div>
 
           <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-            <p>© {new Date().getFullYear()} 360tools.site. All rights reserved. 100% Client-side privacy.</p>
+            <p>© {new Date().getFullYear()} 360tools.site. All rights reserved.</p>
           </div>
         </div>
       </footer>
 
-      {/* PWA Desktop & Mobile Shortcut Install Modal */}
       <InstallShortcutModal
         isOpen={isInstallModalOpen}
         onClose={() => setIsInstallModalOpen(false)}
         onNativeInstall={triggerNativeInstall}
         isInstallable={isInstallable}
-        isIOS={isIOS}
-        isAndroid={isAndroid}
-        isDesktop={isDesktop}
       />
     </div>
   );
