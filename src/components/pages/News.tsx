@@ -1,6 +1,6 @@
 import React from 'react';
-import { newsData } from '../data/newsData';
-import { AdUnit } from '../components/AdUnit';
+import { newsData } from '../../data/newsData';
+import { AdUnit } from '../../components/AdUnit';
 
 export const News: React.FC = () => {
   return (
@@ -30,8 +30,6 @@ export const News: React.FC = () => {
                   onClick={(e) => {
                     if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
                       e.preventDefault();
-                      // Agar aapke paas individual article view ka logic hai toh yahan handle karein
-                      // warna standard navigation ya history push state use karein
                       window.history.pushState({}, '', `/news/${item.slug}`);
                     }
                   }}
