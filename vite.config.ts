@@ -5,7 +5,9 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    base: './',
+    // Custom domain '360tools.site' serves from root '/'.
+    // Using '/' ensures that sub-routes (e.g. /tools/merge-pdf) resolve /assets/index-*.js correctly from root.
+    base: process.env.VITE_BASE_PATH || '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
