@@ -300,7 +300,7 @@ export function getToolSEOData(
 
   const title = generateOptimizedTitle(tool, options.defaultTitleSuffix || DEFAULT_TITLE_SUFFIX);
   const description = generateOptimizedDescription(tool);
-  const canonicalUrl = `${baseUrl}/?tool=${encodeURIComponent(tool.id)}`;
+  const canonicalUrl = `${baseUrl}/tools/${encodeURIComponent(tool.id)}`;
   const ogImage = DEFAULT_OG_IMAGE;
 
   // High-search-volume keywords integration
@@ -369,7 +369,7 @@ export function getToolSEOData(
         '@type': 'ListItem',
         position: 2,
         name: `${tool.category.toUpperCase()} Tools`,
-        item: `${baseUrl}/?category=${encodeURIComponent(tool.category)}`,
+        item: `${baseUrl}/category/${encodeURIComponent(tool.category)}`,
       },
       {
         '@type': 'ListItem',
@@ -380,7 +380,29 @@ export function getToolSEOData(
     ],
   };
 
-  // 3. WebPage Schema definition
+  // 3. Organization / Brand Schema (Local SEO & Authority)
+  const organizationSchema: Record<string, unknown> = {
+    '@type': 'Organization',
+    '@id': `${baseUrl}/#organization`,
+    name: '360 Tools',
+    legalName: '360tools Online Suite',
+    url: baseUrl,
+    logo: `${baseUrl}/assets/icon.svg`,
+    description: 'Free suite of 360+ client-side web tools, calculators, and converters.',
+    sameAs: [
+      'https://github.com/360tools',
+      'https://twitter.com/360tools_site',
+      'https://producthunt.com/products/360tools'
+    ],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'Customer Support',
+      email: 'support@360tools.site',
+      availableLanguage: ['English', 'Urdu', 'Hindi']
+    }
+  };
+
+  // 4. WebPage Schema definition
   const webPageSchema: Record<string, unknown> = {
     '@type': 'WebPage',
     '@id': `${canonicalUrl}#webpage`,
@@ -398,6 +420,7 @@ export function getToolSEOData(
   };
 
   const graphItems: Record<string, unknown>[] = [
+    organizationSchema,
     webPageSchema,
     softwareAppSchema,
     breadcrumbSchema,

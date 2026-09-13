@@ -6,6 +6,7 @@ import { StaticPages } from './components/pages/StaticPages';
 import { IconRenderer } from './components/common/IconRenderer';
 import { ToolCard } from './components/common/ToolCard';
 import { AdSlot } from './components/ads/AdSlot';
+import { NativeAdCard } from './components/ads/NativeAdCard';
 import { ADS_CONFIG } from './config/adsConfig';
 import { InstallShortcutModal } from './components/common/InstallShortcutModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
@@ -67,36 +68,75 @@ export default function App() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Synchronize state with URL parameters (supports direct tool links, indexing & browser history)
+  // Synchronize state with URL paths & search params (crawlable clean URLs for all 360 tools)
   useEffect(() => {
     const handleUrlChange = () => {
-      const params = new URLSearchParams(window.location.search);
-      const toolParam = params.get('tool');
-      const pageParam = params.get('page');
-      const catParam = params.get('category');
+      const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
+      const searchParams = new URLSearchParams(window.location.search);
 
-      if (toolParam) {
-        const found = TOOLS.find((t) => t.id === toolParam);
+      let targetToolId: string | null = null;
+      let targetCategory: ToolCategory | null = null;
+      let targetPage: 'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact' | null = null;
+
+      // 1. Path-based routing: /tools/:toolSlug or /tool/:toolSlug
+      if (pathname.startsWith('/tools/')) {
+        targetToolId = decodeURIComponent(pathname.slice('/tools/'.length));
+      } else if (pathname.startsWith('/tool/')) {
+        targetToolId = decodeURIComponent(pathname.slice('/tool/'.length));
+      } else if (pathname.startsWith('/category/')) {
+        const cat = decodeURIComponent(pathname.slice('/category/'.length)) as ToolCategory;
+        if (['pdf', 'finance', 'math', 'health', 'media', 'utility', 'developer'].includes(cat)) {
+          targetCategory = cat;
+        }
+      } else if (['/privacy', '/terms', '/disclaimer', '/about', '/contact'].includes(pathname)) {
+        targetPage = pathname.slice(1) as any;
+      } else if (pathname !== '/') {
+        // Direct tool slug: /:slug
+        const slug = decodeURIComponent(pathname.slice(1));
+        const found = TOOLS.find((t) => t.id === slug);
         if (found) {
-          setCurrentToolId(toolParam);
+          targetToolId = slug;
+        }
+      }
+
+      // 2. Query param fallback: ?tool=slug, ?category=cat, ?page=page
+      if (!targetToolId && !targetCategory && !targetPage) {
+        const toolParam = searchParams.get('tool');
+        const pageParam = searchParams.get('page');
+        const catParam = searchParams.get('category');
+
+        if (toolParam) {
+          targetToolId = toolParam;
+        } else if (pageParam && ['privacy', 'terms', 'disclaimer', 'about', 'contact'].includes(pageParam)) {
+          targetPage = pageParam as any;
+        } else if (catParam && ['pdf', 'finance', 'math', 'health', 'media', 'utility', 'developer'].includes(catParam)) {
+          targetCategory = catParam as ToolCategory;
+        }
+      }
+
+      // 3. Apply state and dynamic SEO meta tags
+      if (targetToolId) {
+        const found = TOOLS.find((t) => t.id === targetToolId);
+        if (found) {
+          setCurrentToolId(targetToolId);
           setCurrentPage(null);
-          injectToolSEO(toolParam);
+          injectToolSEO(targetToolId);
           return;
         }
       }
 
-      if (pageParam && ['privacy', 'terms', 'disclaimer', 'about', 'contact'].includes(pageParam)) {
-        setCurrentPage(pageParam as any);
+      if (targetPage) {
+        setCurrentPage(targetPage);
         setCurrentToolId(null);
-        document.title = `${pageParam.charAt(0).toUpperCase() + pageParam.slice(1)} - 360tools.site`;
+        document.title = `${targetPage.charAt(0).toUpperCase() + targetPage.slice(1)} - 360tools.site`;
         return;
       }
 
-      if (catParam && ['pdf', 'finance', 'math', 'health', 'media', 'utility', 'developer'].includes(catParam)) {
-        setCurrentCategory(catParam as ToolCategory);
+      if (targetCategory) {
+        setCurrentCategory(targetCategory);
         setCurrentToolId(null);
         setCurrentPage(null);
-        injectCategorySEO(catParam as ToolCategory);
+        injectCategorySEO(targetCategory);
         return;
       }
 
@@ -128,17 +168,15 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Update URL history and dynamic SEO for individual indexing when navigating
+  // Navigation handlers with clean crawlable paths and SEO meta updates
   const navigateToTool = (toolId: string) => {
     setCurrentToolId(toolId);
     setCurrentPage(null);
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    const newUrl = `${window.location.pathname}?tool=${encodeURIComponent(toolId)}`;
+    const newUrl = `/tools/${encodeURIComponent(toolId)}`;
     window.history.pushState({ toolId }, '', newUrl);
-
-    // Dynamic SEO update for distinct indexing of each tool
     injectToolSEO(toolId);
   };
 
@@ -148,12 +186,12 @@ export default function App() {
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    const newUrl = `${window.location.pathname}?page=${encodeURIComponent(page)}`;
+    const newUrl = `/${encodeURIComponent(page)}`;
     window.history.pushState({ page }, '', newUrl);
     document.title = `${page.charAt(0).toUpperCase() + page.slice(1)} - 360tools.site`;
   };
 
-  const navigateToHome = (category: ToolCategory | 'all' = 'all') => {
+  const navigateToCategory = (category: ToolCategory) => {
     setCurrentToolId(null);
     setCurrentPage(null);
     setCurrentCategory(category);
@@ -161,14 +199,25 @@ export default function App() {
     setMobileMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    const newUrl = category === 'all' ? window.location.pathname : `${window.location.pathname}?category=${category}`;
-    window.history.pushState({}, '', newUrl);
+    const newUrl = `/category/${encodeURIComponent(category)}`;
+    window.history.pushState({ category }, '', newUrl);
+    injectCategorySEO(category);
+  };
 
+  const navigateToHome = (category: ToolCategory | 'all' = 'all') => {
     if (category !== 'all') {
-      injectCategorySEO(category);
-    } else {
-      resetDefaultSEO();
+      navigateToCategory(category);
+      return;
     }
+    setCurrentToolId(null);
+    setCurrentPage(null);
+    setCurrentCategory('all');
+    setSearchQuery('');
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    window.history.pushState({}, '', '/');
+    resetDefaultSEO();
   };
 
   // Filtered tools according to category and live search
@@ -193,15 +242,15 @@ export default function App() {
     return result;
   }, [currentCategory, searchQuery]);
 
-  // Interspersed 10 Ads in Tools Grid (Distribute 10 ads evenly across tools)
+  // Interspersed exactly 50 Native Banner Ads across the 360 Tools Grid
   const gridWithAds = useMemo(() => {
     if (!ADS_CONFIG.enabled || filteredTools.length === 0) {
       return filteredTools.map((tool) => ({ type: 'tool' as const, tool }));
     }
 
-    const totalAds = Math.min(ADS_CONFIG.homeGridAds.length, 10);
-    // When we have tools to show, calculate step interval for 10 ads
-    const step = Math.max(8, Math.floor(filteredTools.length / (totalAds + 1)));
+    const totalAds = Math.min(ADS_CONFIG.homeGridAds.length, 50);
+    // Calculate step interval so 50 ads are distributed evenly across tools
+    const step = Math.max(3, Math.floor(filteredTools.length / 50));
 
     const items: Array<
       | { type: 'tool'; tool: ToolItem }
@@ -265,9 +314,13 @@ export default function App() {
           {/* Desktop Navigation Links */}
           <nav className="hidden lg:flex items-center gap-1 text-sm font-semibold text-slate-700">
             <a
-              href="?tool=merge-pdf"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/tools/merge-pdf"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToTool('merge-pdf');
+                }
+              }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
                 currentToolId === 'merge-pdf' ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
@@ -275,9 +328,13 @@ export default function App() {
               Merge PDF
             </a>
             <a
-              href="?tool=scientific-calculator"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/tools/scientific-calculator"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToTool('scientific-calculator');
+                }
+              }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
                 currentToolId === 'scientific-calculator' ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
@@ -285,63 +342,103 @@ export default function App() {
               Scientific Math
             </a>
             <a
-              href="?tool=stylish-font-generator"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/tools/stylish-font-generator"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToTool('stylish-font-generator');
+                }
+              }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
                 currentToolId === 'stylish-font-generator' ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
             >
               Stylish Fonts
             </a>
-            <button
-              onClick={() => navigateToHome('math')}
+            <a
+              href="/category/math"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToCategory('math');
+                }
+              }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
                 !currentToolId && currentCategory === 'math' ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
             >
               Math
-            </button>
-            <button
-              onClick={() => navigateToHome('finance')}
+            </a>
+            <a
+              href="/category/finance"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToCategory('finance');
+                }
+              }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
                 !currentToolId && currentCategory === 'finance' ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
             >
               Finance
-            </button>
-            <button
-              onClick={() => navigateToHome('health')}
+            </a>
+            <a
+              href="/category/health"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToCategory('health');
+                }
+              }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
                 !currentToolId && currentCategory === 'health' ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
             >
               Health
-            </button>
-            <button
-              onClick={() => navigateToHome('utility')}
+            </a>
+            <a
+              href="/category/utility"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToCategory('utility');
+                }
+              }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
                 !currentToolId && currentCategory === 'utility' ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
             >
               Utility
-            </button>
-            <button
-              onClick={() => navigateToHome('developer')}
+            </a>
+            <a
+              href="/category/developer"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToCategory('developer');
+                }
+              }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
                 !currentToolId && currentCategory === 'developer' ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
             >
               Developer
-            </button>
-            <button
-              onClick={() => navigateToHome('all')}
+            </a>
+            <a
+              href="/"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToHome('all');
+                }
+              }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
                 !currentToolId && currentCategory === 'all' && !currentPage ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
             >
               All Tools
-            </button>
+            </a>
           </nav>
 
           {/* Right Action: Install Button, Search Bar, Mobile Menu Toggle */}
@@ -401,13 +498,19 @@ export default function App() {
               <ChevronRight className="w-4 h-4 text-red-400" />
             </button>
 
-            <button
-              onClick={() => navigateToHome('all')}
+            <a
+              href="/"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToHome('all');
+                }
+              }}
               className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-50 flex items-center justify-between text-slate-800"
             >
               <span>All Tools ({TOOLS.length})</span>
               <ChevronRight className="w-4 h-4 text-slate-400" />
-            </button>
+            </a>
             <div className="pt-2 border-t border-slate-100">
               <span className="text-[11px] font-bold uppercase text-slate-400 px-3">Categories</span>
               {CATEGORIES.map((cat) => (
@@ -534,10 +637,7 @@ export default function App() {
               })}
             </div>
 
-            {/* Homepage Top Banner Ad */}
-            <AdSlot adConfig={ADS_CONFIG.homeTopBanner} variant="banner" className="pt-2" />
-
-            {/* Tool Cards Grid — Exact 5-Column Layout (Desktop) / 2-Column Layout (Mobile) with 10 Interspersed Ads */}
+            {/* Tool Cards Grid — Exact Responsive Grid with 40+ Seamlessly Interspersed Native Ads */}
             {filteredTools.length === 0 ? (
               <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center max-w-md mx-auto space-y-3">
                 <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
@@ -559,25 +659,24 @@ export default function App() {
               </div>
             ) : (
               <div className="space-y-8">
-                {/* Responsive Card Grid with 10 Native Ads */}
+                {/* Responsive Card Grid with 40+ Native Banner Ads styled like natural tool cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-4 md:gap-5">
                   {gridWithAds.map((item, idx) => {
                     if (item.type === 'tool') {
-                      return <ToolCard key={`tool-${item.tool.id}`} tool={item.tool} />;
+                      return <ToolCard key={`tool-${item.tool.id}`} tool={item.tool} onSelect={navigateToTool} />;
                     } else {
                       return (
-                        <div key={`ad-${item.adConfig.id}-${idx}`} className="h-full">
-                          <AdSlot adConfig={item.adConfig} variant="infeed" className="h-full" />
-                        </div>
+                        <NativeAdCard
+                          key={`ad-${item.adConfig.id}-${idx}`}
+                          id={item.adConfig.id}
+                          index={item.index}
+                        />
                       );
                     }
                   })}
                 </div>
               </div>
             )}
-
-            {/* Homepage Bottom Banner Ad */}
-            <AdSlot adConfig={ADS_CONFIG.homeBottomBanner} variant="banner" className="pt-2" />
 
             {/* Platform Trust & Privacy Section */}
             <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-xs">
@@ -659,27 +758,72 @@ export default function App() {
               </h4>
               <ul className="space-y-2 text-slate-500">
                 <li>
-                  <a href="?tool=merge-pdf" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/merge-pdf"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('merge-pdf');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Merge PDF
                   </a>
                 </li>
                 <li>
-                  <a href="?tool=image-to-pdf" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/image-to-pdf"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('image-to-pdf');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Image to PDF
                   </a>
                 </li>
                 <li>
-                  <a href="?tool=split-pdf" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/split-pdf"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('split-pdf');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Split PDF
                   </a>
                 </li>
                 <li>
-                  <a href="?tool=watermark-pdf" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/watermark-pdf"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('watermark-pdf');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Watermark PDF
                   </a>
                 </li>
                 <li>
-                  <a href="?tool=text-to-pdf" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/text-to-pdf"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('text-to-pdf');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Text to PDF
                   </a>
                 </li>
@@ -693,70 +837,160 @@ export default function App() {
               </h4>
               <ul className="space-y-2 text-slate-500">
                 <li>
-                  <a href="?tool=scientific-calculator" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/scientific-calculator"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('scientific-calculator');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Scientific Math
                   </a>
                 </li>
                 <li>
-                  <a href="?tool=mortgage-calculator" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/mortgage-calculator"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('mortgage-calculator');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Mortgage Calculator
                   </a>
                 </li>
                 <li>
-                  <a href="?tool=bmi-calculator" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/bmi-calculator"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('bmi-calculator');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     BMI Calculator
                   </a>
                 </li>
                 <li>
-                  <a href="?tool=stylish-font-generator" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/stylish-font-generator"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('stylish-font-generator');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Stylish Font Generator
                   </a>
                 </li>
                 <li>
-                  <a href="?tool=age-calculator" target="_blank" rel="noopener noreferrer" className="hover:text-[#e5322d]">
+                  <a
+                    href="/tools/age-calculator"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToTool('age-calculator');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Age & Birthday
                   </a>
                 </li>
               </ul>
             </div>
 
-            {/* Col 3: Legal & Resources */}
+            {/* Col 3: Legal & Company */}
             <div className="space-y-2.5">
               <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
                 Company & Legal
               </h4>
               <ul className="space-y-2 text-slate-500">
                 <li>
-                  <button onClick={() => navigateToPage('privacy')} className="hover:text-[#e5322d]">
+                  <a
+                    href="/privacy"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToPage('privacy');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Privacy Policy
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button onClick={() => navigateToPage('terms')} className="hover:text-[#e5322d]">
+                  <a
+                    href="/terms"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToPage('terms');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Terms of Service
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button onClick={() => navigateToPage('disclaimer')} className="hover:text-[#e5322d]">
+                  <a
+                    href="/disclaimer"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToPage('disclaimer');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Disclaimer
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button onClick={() => navigateToPage('about')} className="hover:text-[#e5322d]">
+                  <a
+                    href="/about"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToPage('about');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     About Us
-                  </button>
+                  </a>
                 </li>
                 <li>
-                  <button onClick={() => navigateToPage('contact')} className="hover:text-[#e5322d]">
+                  <a
+                    href="/contact"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToPage('contact');
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
                     Contact
-                  </button>
+                  </a>
                 </li>
               </ul>
             </div>
           </div>
 
           <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-            <p>© {new Date().getFullYear()} 360tools. All rights reserved. 100% Client-side privacy.</p>
+            <p>© {new Date().getFullYear()} 360tools.site. All rights reserved. 100% Client-side privacy.</p>
           </div>
         </div>
       </footer>

@@ -7,8 +7,8 @@ import {
 import { useToolSEO } from '../../utils/seo';
 import { getToolTheme } from '../../utils/toolTheme';
 import { ToolCard } from '../common/ToolCard';
-import { AdSlot } from '../ads/AdSlot';
-import { ADS_CONFIG } from '../../config/adsConfig';
+import { SocialShareBar } from '../common/SocialShareBar';
+import { ToolAdSlot } from '../ads/ToolAdSlot';
 
 // PDF Tools
 import { MergePdfTool } from './pdf/MergePdfTool';
@@ -178,14 +178,31 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
       {/* Navigation Breadcrumbs & Back Button */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-          <button
-            onClick={onBack}
+          <a
+            href="/"
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                e.preventDefault();
+                onBack();
+              }
+            }}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs font-bold cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" /> All Tools
-          </button>
+          </a>
           <span>/</span>
-          <span className="capitalize">{tool.category}</span>
+          <a
+            href={`/category/${encodeURIComponent(tool.category)}`}
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                e.preventDefault();
+                onBack();
+              }
+            }}
+            className="capitalize hover:text-blue-600 cursor-pointer"
+          >
+            {tool.category}
+          </a>
           <span>/</span>
           <span className="text-slate-900 font-bold">{tool.name}</span>
         </div>
@@ -198,9 +215,6 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
           {copiedLink ? 'Link Copied!' : 'Share Tool'}
         </button>
       </div>
-
-      {/* Tool Ad #1: Top Banner (Leaderboard above Tool Header) */}
-      <AdSlot adConfig={ADS_CONFIG.toolAds.slot1Top} variant="banner" />
 
       {/* Tool Header - Styled with Category Theme */}
       <div className={`rounded-3xl border p-6 sm:p-8 transition-colors ${
@@ -233,10 +247,13 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
         {/* Interactive Tool Main Area + Privacy Guarantee Box + Ads */}
         <div className="mt-6 grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
           <div className="xl:col-span-8 space-y-6">
+            {/* 100% Client-Side Interactive Tool Workspace (No ads above, immediate access) */}
             {renderToolComponent()}
 
-            {/* Tool Ad #3: Post-Result / Output Area (High CTR) */}
-            <AdSlot adConfig={ADS_CONFIG.toolAds.slot3PostResult} variant="banner" />
+            {/* Ad #1: Directly BELOW the interactive calculator/tool workspace */}
+            <div className="pt-2">
+              <ToolAdSlot id="tool-ad-1-post-workspace" variant="banner" />
+            </div>
           </div>
 
           <div className="xl:col-span-4 space-y-6">
@@ -253,6 +270,11 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
                 </p>
               </div>
 
+              {/* Ad #2: Single Sidebar Ad (Only 1 ad in sidebar, never stacked) */}
+              <div className="hidden lg:block">
+                <ToolAdSlot id="tool-ad-2-sidebar" variant="sidebar" />
+              </div>
+
               {/* Instant Execution Guarantee */}
               <div className={`p-5 rounded-2xl border space-y-2 ${
                 isDark ? 'bg-slate-900/60 border-slate-800 text-slate-200' : 'bg-slate-50 border-slate-200/80 text-slate-800'
@@ -265,16 +287,18 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
                   Real-time computations running natively in your browser memory for maximum speed and zero cloud latency.
                 </p>
               </div>
-
-              {/* Tool Ad #2: Workspace Mid / Sticky Sidebar Ad */}
-              <AdSlot adConfig={ADS_CONFIG.toolAds.slot2Workspace} variant="box" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tool Ad #4: Pre-FAQ & Guide Banner */}
-      <AdSlot adConfig={ADS_CONFIG.toolAds.slot4PreFaq} variant="banner" />
+      {/* Built-in Social Share Feature (WhatsApp, Twitter, Facebook, Copy Link) */}
+      <SocialShareBar tool={tool} />
+
+      {/* Ad #3: Between Social Share & Step-by-Step Guide */}
+      <div className="my-6">
+        <ToolAdSlot id="tool-ad-3-pre-guide" variant="banner" />
+      </div>
 
       {/* STEP-BY-STEP GUIDE & QUICK EXAMPLE (Exact requirement) */}
       <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-10 shadow-xs space-y-10 text-slate-900">
@@ -283,10 +307,10 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
         <div>
           <div className="mb-6">
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              How to Use This Tool? (Step-by-Step Guide)
+              How to Use {tool.name}? (Step-by-Step Guide)
             </h2>
             <p className="text-sm text-slate-500 mt-1">
-              Follow these simple steps to calculate, generate, or process your data right in your browser.
+              Follow these clear, foolproof steps to process your calculations or media entirely within your browser memory.
             </p>
           </div>
 
@@ -295,9 +319,9 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
               <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center">
                 Step 1
               </div>
-              <h3 className="font-bold text-sm text-slate-900">Open the Interface</h3>
+              <h3 className="font-bold text-sm text-slate-900">Open the Tool Interface</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Tool ko open karein, interface bilkul clean aur responsive hai jo mobile, tablet aur desktop har device par proper work karta hai.
+                Open {tool.name} on any device. The responsive layout adapts seamlessly to smartphones, tablets, laptops, and desktop monitors.
               </p>
             </div>
 
@@ -305,9 +329,9 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
               <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center">
                 Step 2
               </div>
-              <h3 className="font-bold text-sm text-slate-900">Enter Input Data</h3>
+              <h3 className="font-bold text-sm text-slate-900">Input Data or Upload</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Diye gaye input box ya field mein apna data/text enter karein (jaise number, text ya option select karna).
+                Enter your required values, paste code/text, or drag-and-drop your local file directly into the designated input zone.
               </p>
             </div>
 
@@ -315,9 +339,9 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
               <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center">
                 Step 3
               </div>
-              <h3 className="font-bold text-sm text-slate-900">Click Process / Generate</h3>
+              <h3 className="font-bold text-sm text-slate-900">Instant Client Computation</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                "Process / Generate" ya "Calculate" button par click karein. Browser ke andar instant calculations run hon gi.
+                Click Calculate or Process. All algorithms execute in-memory with zero cloud roundtrips and 100% privacy protection.
               </p>
             </div>
 
@@ -325,9 +349,53 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
               <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center">
                 Step 4
               </div>
-              <h3 className="font-bold text-sm text-slate-900">Instant Result Screen</h3>
+              <h3 className="font-bold text-sm text-slate-900">Copy or Export Output</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Aapka result instant screen par show ho jayega, jise aap direct one-click mein copy ya download kar sakte hain.
+                Review your instant results, copy them with a single click to your clipboard, or download files immediately.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Key Features & Benefits (High Intent SEO Headings) */}
+        <div className="pt-2 border-t border-slate-100">
+          <div className="mb-6">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Key Features & Benefits of {tool.name}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Why millions of creators, developers, students, and professionals rely on 360tools daily.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/60 space-y-2">
+              <h3 className="font-bold text-sm text-emerald-950 flex items-center gap-2">
+                <Lock className="w-4 h-4 text-emerald-600" />
+                100% Client-Side Privacy
+              </h3>
+              <p className="text-xs text-emerald-800 leading-relaxed">
+                Your private files, sensitive numbers, and proprietary code never touch an external server. Everything is processed directly in your browser session.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-blue-50/50 border border-blue-200/60 space-y-2">
+              <h3 className="font-bold text-sm text-blue-950 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                Zero Latency Performance
+              </h3>
+              <p className="text-xs text-blue-800 leading-relaxed">
+                Native Web APIs and optimized JavaScript run computations with millisecond response times without waiting on remote server queues.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-purple-50/50 border border-purple-200/60 space-y-2">
+              <h3 className="font-bold text-sm text-purple-950 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                No Signup or Software Install
+              </h3>
+              <p className="text-xs text-purple-800 leading-relaxed">
+                Completely free to use forever. No sign-up walls, credit cards, or desktop installations required. Bookmark and access whenever needed.
               </p>
             </div>
           </div>
@@ -374,6 +442,11 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Ad #4: Pre-FAQ Banner */}
+        <div className="pt-2">
+          <ToolAdSlot id="tool-ad-4-pre-faq" variant="banner" />
         </div>
 
         {/* Structured Frequently Asked Questions (FAQ) Section */}
@@ -479,10 +552,12 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
           );
         })()}
 
-        {/* Tool Ad #5: Bottom Banner (Above Related Tools) */}
-        <AdSlot adConfig={ADS_CONFIG.toolAds.slot5Bottom} variant="banner" className="pt-4" />
+        {/* Ad #5: Bottom Banner (Above Related Tools) */}
+        <div className="pt-4 pb-2">
+          <ToolAdSlot id="tool-ad-5-bottom" variant="banner" />
+        </div>
 
-        {/* Related Tools - Opens in New Tab */}
+        {/* Related Tools - Semantic internal links */}
         {relatedTools.length > 0 && (
           <div>
             <h2 className="text-lg font-bold text-slate-900 mb-4">
@@ -490,7 +565,7 @@ export const ToolView: React.FC<ToolViewProps> = ({ tool, onBack, onSelectTool, 
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
               {relatedTools.map((rel) => (
-                <ToolCard key={rel.id} tool={rel} />
+                <ToolCard key={rel.id} tool={rel} onSelect={onSelectTool} />
               ))}
             </div>
           </div>

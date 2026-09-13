@@ -71,54 +71,58 @@ export interface AdsGlobalConfig {
   homeBottomBanner: AdUnitConfig;
 
   /**
-   * Homepage 360 Tools Grid Ads (10 Ads randomly/strategically distributed in the tools grid)
+   * Homepage 360 Tools Grid Ads (50 Ads distributed seamlessly in the tools grid)
    */
   homeGridAds: AdUnitConfig[];
 
   /**
-   * Every Tool Page (5 distinct strategic ad placements inside every opened tool)
+   * Every Tool Page (Exactly 5 distinct strategic ad placements inside every opened tool)
    */
   toolAds: {
-    // 1. Tool Page Top (Below header, above tool inputs)
-    slot1Top: AdUnitConfig;
-
-    // 2. Tool Workspace Mid (Between options or helper bar)
-    slot2Workspace: AdUnitConfig;
-
-    // 3. Post-Result (Directly under computed results & download actions)
-    slot3PostResult: AdUnitConfig;
-
-    // 4. Pre-FAQ (Directly above the step-by-step guide & FAQs)
+    slot1PostWorkspace: AdUnitConfig;
+    slot2Sidebar: AdUnitConfig;
+    slot3PreGuide: AdUnitConfig;
     slot4PreFaq: AdUnitConfig;
-
-    // 5. Tool Bottom (Directly above Explore More Related Tools)
     slot5Bottom: AdUnitConfig;
   };
 }
+
+export const NATIVE_BANNER_AD_CODE = `<script async="async" data-cfasync="false" src="https://professionalsusceptible.com/1cd889dea3cd4462595169e7f5655753/invoke.js"></script><div id="container-1cd889dea3cd4462595169e7f5655753"></div>`;
+
+// Generate exactly 50 native ad slots distributed across the 360 tools grid
+const generateGridAds = (count: number = 50): AdUnitConfig[] => {
+  return Array.from({ length: count }, (_, i) => ({
+    id: `home-grid-ad-${i + 1}`,
+    name: `Tools Grid Native Ad #${i + 1}`,
+    slotId: "",
+    customCode: NATIVE_BANNER_AD_CODE,
+    format: "responsive",
+  }));
+};
 
 export const ADS_CONFIG: AdsGlobalConfig = {
   // Global Switch: Ads enable/disable
   enabled: true,
 
-  // 👉 YAHAN APNA GOOGLE ADSENSE CLIENT ID DAALEIN (e.g. "ca-pub-1234567890123456"):
+  // Google AdSense Client ID (if using AdSense alongside)
   adsenseClientId: "",
 
-  // Placeholder preview mode (True dikhayega jab tak aap apna real ad code nahi daalte)
-  showPlaceholdersWhenEmpty: true,
+  // Placeholder preview mode (False when real ad code is active)
+  showPlaceholdersWhenEmpty: false,
 
-  // 👉 UNIVERSAL AD CODE (Optional - ek hi code sab jagah chalane ke liye):
-  universalAdCode: "",
+  // Native Banner Ad Code placed globally
+  universalAdCode: NATIVE_BANNER_AD_CODE,
 
-  // 1. HOMEPAGE TOP BANNER AD
+  // 1. HOMEPAGE TOP BANNER AD (Disabled as per user request to remove from header)
   homeTopBanner: {
     id: "home-top-banner",
     name: "Homepage Top Leaderboard",
-    slotId: "", // e.g. "1000000001"
-    customCode: "", // ya yahan poora <script> ad tag paste karein
+    slotId: "",
+    customCode: "",
     format: "horizontal",
   },
 
-  // 2. HOMEPAGE BOTTOM BANNER AD
+  // 2. HOMEPAGE BOTTOM BANNER AD (Disabled as per user request)
   homeBottomBanner: {
     id: "home-bottom-banner",
     name: "Homepage Bottom Leaderboard",
@@ -127,124 +131,44 @@ export const ADS_CONFIG: AdsGlobalConfig = {
     format: "horizontal",
   },
 
-  // 3. HOMEPAGE 10 INTERSPERSED ADS (Tools Grid ke andar 10 ads)
-  homeGridAds: [
-    {
-      id: "home-grid-ad-1",
-      name: "Tools Grid Ad #1 (After ~18 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-    {
-      id: "home-grid-ad-2",
-      name: "Tools Grid Ad #2 (After ~54 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-    {
-      id: "home-grid-ad-3",
-      name: "Tools Grid Ad #3 (After ~90 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-    {
-      id: "home-grid-ad-4",
-      name: "Tools Grid Ad #4 (After ~126 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-    {
-      id: "home-grid-ad-5",
-      name: "Tools Grid Ad #5 (After ~162 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-    {
-      id: "home-grid-ad-6",
-      name: "Tools Grid Ad #6 (After ~198 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-    {
-      id: "home-grid-ad-7",
-      name: "Tools Grid Ad #7 (After ~234 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-    {
-      id: "home-grid-ad-8",
-      name: "Tools Grid Ad #8 (After ~270 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-    {
-      id: "home-grid-ad-9",
-      name: "Tools Grid Ad #9 (After ~306 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-    {
-      id: "home-grid-ad-10",
-      name: "Tools Grid Ad #10 (After ~342 tools)",
-      slotId: "",
-      customCode: "",
-      format: "responsive",
-    },
-  ],
+  // 3. HOMEPAGE 50 ADS IN TOOLS GRID (Exactly 50 ads)
+  homeGridAds: generateGridAds(50),
 
-  // 4. EVERY TOOL PAGE (5 Distinct Ad Placements)
+  // 4. EVERY TOOL PAGE (Exactly 5 Strategic Ad Placements inside every tool page)
   toolAds: {
-    // Ad 1: Top of the tool (High visibility on initial page load)
-    slot1Top: {
-      id: "tool-ad-1-top",
-      name: "Tool View #1: Top Header Leaderboard",
+    slot1PostWorkspace: {
+      id: "tool-ad-1-post-workspace",
+      name: "Tool View #1: Below Interactive Tool / Results",
       slotId: "",
-      customCode: "",
+      customCode: NATIVE_BANNER_AD_CODE,
       format: "horizontal",
     },
-
-    // Ad 2: Mid Workspace (Alongside tool options / under instructions)
-    slot2Workspace: {
-      id: "tool-ad-2-workspace",
-      name: "Tool View #2: Mid Workspace / Under Controls",
+    slot2Sidebar: {
+      id: "tool-ad-2-sidebar",
+      name: "Tool View #2: Single Sidebar Feature",
       slotId: "",
-      customCode: "",
+      customCode: NATIVE_BANNER_AD_CODE,
       format: "responsive",
     },
-
-    // Ad 3: Post-Result (Directly under computed results & download actions - Highest CTR)
-    slot3PostResult: {
-      id: "tool-ad-3-result",
-      name: "Tool View #3: Post-Result / Under Output",
+    slot3PreGuide: {
+      id: "tool-ad-3-preguide",
+      name: "Tool View #3: Above Step-by-Step Guide",
       slotId: "",
-      customCode: "",
-      format: "responsive",
+      customCode: NATIVE_BANNER_AD_CODE,
+      format: "horizontal",
     },
-
-    // Ad 4: Pre-FAQ (Directly above the step-by-step guide & FAQs)
     slot4PreFaq: {
       id: "tool-ad-4-prefaq",
-      name: "Tool View #4: Above FAQ & Guide",
+      name: "Tool View #4: Between Guide & FAQ",
       slotId: "",
-      customCode: "",
+      customCode: NATIVE_BANNER_AD_CODE,
       format: "horizontal",
     },
-
-    // Ad 5: Tool Bottom (Directly above Explore More Related Tools)
     slot5Bottom: {
       id: "tool-ad-5-bottom",
       name: "Tool View #5: Above Related Tools",
       slotId: "",
-      customCode: "",
+      customCode: NATIVE_BANNER_AD_CODE,
       format: "horizontal",
     },
   },

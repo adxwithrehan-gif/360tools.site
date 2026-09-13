@@ -23,13 +23,47 @@ export const AdSlot: React.FC<AdSlotProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [impressionCounted, setImpressionCounted] = useState(false);
   const [adLoaded, setAdLoaded] = useState(false);
+  const [isInViewport, setIsInViewport] = useState(false);
 
   // Determine active ad payload
   const activeCode = adConfig.customCode || ADS_CONFIG.universalAdCode || '';
   const activeSlotId = adConfig.slotId || '';
   const hasRealAd = Boolean(activeCode || (activeSlotId && ADS_CONFIG.adsenseClientId));
 
-  // 1. Viewport Impression Tracking (Accurately counts impressions when 50%+ visible)
+  // Determine if this is a priority slot that should render immediately without waiting for scroll
+  const isPrioritySlot = 
+    adConfig.id === 'home-top-banner' || 
+    adConfig.id === 'tool-ad-1-top' || 
+    adConfig.id.endsWith('-1') || 
+    adConfig.id.endsWith('-2');
+
+  // 1. Lazy Viewport Trigger using IntersectionObserver
+  useEffect(() => {
+    if (!ADS_CONFIG.enabled || isPrioritySlot) {
+      setIsInViewport(true);
+      return;
+    }
+
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsInViewport(true);
+            observer.disconnect();
+          }
+        });
+      },
+      { rootMargin: '300px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [adConfig.id, isPrioritySlot]);
+
+  // 2. Viewport Impression Tracking (Accurately counts impressions when 40%+ visible)
   useEffect(() => {
     if (!ADS_CONFIG.enabled || impressionCounted) return;
 
@@ -58,9 +92,9 @@ export const AdSlot: React.FC<AdSlotProps> = ({
     return () => observer.disconnect();
   }, [adConfig.id, adConfig.name, impressionCounted]);
 
-  // 2. Google AdSense / Script execution
+  // 3. Google AdSense / Script execution (Only executed when slot is in or near viewport)
   useEffect(() => {
-    if (!ADS_CONFIG.enabled || !hasRealAd) return;
+    if (!ADS_CONFIG.enabled || !hasRealAd || (!isInViewport && !isPrioritySlot) || adLoaded) return;
 
     const el = containerRef.current;
     if (!el) return;
@@ -95,7 +129,7 @@ export const AdSlot: React.FC<AdSlotProps> = ({
         console.error('Error rendering custom ad code', e);
       }
     }
-  }, [activeCode, activeSlotId, hasRealAd]);
+  }, [activeCode, activeSlotId, hasRealAd, isInViewport, isPrioritySlot, adLoaded]);
 
   if (!ADS_CONFIG.enabled) return null;
 

@@ -5,15 +5,26 @@ import { ToolBadgeGraphic } from './ToolBadgeGraphic';
 interface ToolCardProps {
   tool: ToolItem;
   className?: string;
+  onSelect?: (toolId: string) => void;
 }
 
-export const ToolCard: React.FC<ToolCardProps> = ({ tool, className = '' }) => {
+export const ToolCard: React.FC<ToolCardProps> = ({ tool, className = '', onSelect }) => {
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // If user clicked with Cmd/Ctrl/Shift or middle click, allow browser default (open new tab)
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) {
+      return;
+    }
+    if (onSelect) {
+      e.preventDefault();
+      onSelect(tool.id);
+    }
+  };
+
   return (
     <a
       id={`tool-${tool.id}`}
-      href={`?tool=${encodeURIComponent(tool.id)}`}
-      target="_blank"
-      rel="noopener noreferrer"
+      href={`/tools/${encodeURIComponent(tool.id)}`}
+      onClick={handleClick}
       className={`group bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-3.5 sm:p-5 lg:p-6 flex flex-col justify-start text-left transition-all duration-200 cursor-pointer relative hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg block h-full ${className}`}
     >
       {/* Top-Left Visual Image / Badge */}
