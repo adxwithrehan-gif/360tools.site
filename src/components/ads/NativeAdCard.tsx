@@ -6,18 +6,15 @@ interface NativeAdCardProps {
   className?: string;
 }
 
-export const ADSTERRA_NATIVE_BANNER_CODE = `<script async="async" data-cfasync="false" src="https://professionalsusceptible.com/1cd889dea3cd4462595169e7f5655753/invoke.js"></script>
-<div id="container-1cd889dea3cd4462595169e7f5655753"></div>
-`;
+export const ADSTERRA_NATIVE_BANNER_CODE = `<script async="async" data-cfasync="false" src="https://professionalsusceptible.com/1cd889dea3c4462595169e7f5655753/invoke.js"></script>
+<div id="container-1cd889dea3c4462595169e7f5655753"></div>`;
 
 export const NativeAdCard: React.FC<NativeAdCardProps> = ({ id, index, className = '' }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isInViewport, setIsInViewport] = useState(false);
-  const containerId = 'container-1cd889dea3cd4462595169e7f5655753';
+  const containerId = 'container-1cd889dea3c4462595169e7f5655753';
 
-  // Lazy viewport observer so ads load smoothly
   useEffect(() => {
-    // Priority: First 4 ad cards load immediately
     if (index < 4) {
       setIsInViewport(true);
       return;
@@ -42,8 +39,6 @@ export const NativeAdCard: React.FC<NativeAdCardProps> = ({ id, index, className
     return () => observer.disconnect();
   }, [index]);
 
-  // Clean iframe document isolating the Adsterra script and container
-  // Each iframe has its own isolated DOM so container-1cd889dea3cd4462595169e7f5655753 works in every single card!
   const iframeHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,7 +67,7 @@ export const NativeAdCard: React.FC<NativeAdCardProps> = ({ id, index, className
   </style>
 </head>
 <body>
-  <script async="async" data-cfasync="false" src="https://professionalsusceptible.com/1cd889dea3cd4462595169e7f5655753/invoke.js"></script>
+  <script async="async" data-cfasync="false" src="https://professionalsusceptible.com/1cd889dea3c4462595169e7f5655753/invoke.js"></script>
   <div id="${containerId}"></div>
 </body>
 </html>`;
@@ -83,7 +78,6 @@ export const NativeAdCard: React.FC<NativeAdCardProps> = ({ id, index, className
       id={`native-ad-slot-${id}`}
       className={`group bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 p-2 sm:p-3 md:p-4 flex flex-col items-center justify-center relative hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg h-full min-h-[170px] sm:min-h-[210px] overflow-hidden transition-all duration-200 ${className}`}
     >
-      {/* Pure Ad Element with zero labels, zero sponsored text, zero partner text */}
       <div className="w-full h-full flex-1 flex items-center justify-center min-h-[150px] sm:min-h-[185px] overflow-hidden rounded-xl">
         {isInViewport ? (
           <iframe
