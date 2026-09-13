@@ -3,38 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <script>
-      // Compatibility guard: ensure window.fetch can be safely assigned by polyfills, ad networks, or extensions
-      // without throwing 'Cannot set property fetch of #<Window> which has only a getter'
-      (function() {
-        try {
-          var target = typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : null;
-          if (target && 'fetch' in target) {
-            var _currentFetch = target.fetch;
-            try {
-              Object.defineProperty(target, 'fetch', {
-                get: function() {
-                  return _currentFetch;
-                },
-                set: function(v) {
-                  _currentFetch = v;
-                },
-                configurable: true,
-                enumerable: true
-              });
-            } catch (_) {}
-          }
-        } catch (_) {}
-      })();
-    </script>
-    <script>
       // Single Page Apps for GitHub Pages: Clean deep link rehydration from 404.html redirect
       (function(l) {
-        if (l.search[1] === '/' ) {
+        if (l.search && l.search.charAt(1) === '/') {
           var decoded = l.search.slice(1).split('&').map(function(s) { 
-            return s.replace(/~and~/g, '&')
+            return s.replace(/~and~/g, '&');
           }).join('?');
+          var basePath = l.pathname.endsWith('/') ? l.pathname.slice(0, -1) : l.pathname;
           window.history.replaceState(null, null,
-              l.pathname.slice(0, -1) + decoded + l.hash
+              basePath + decoded + l.hash
           );
         }
       }(window.location));
@@ -80,9 +57,27 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+      // Global uncaught error listener to aid debugging and catch extension issues
+      window.addEventListener('error', function(e) {
+        console.error('360tools Top-level Runtime Error:', e.error || e.message);
+      });
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-rose-100 selection:text-rose-900">
-    <div id="root"></div>
+    <div id="root">
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f8f9fa;font-family:system-ui,-apple-system,sans-serif;">
+        <div style="width:52px;height:52px;background:#e5322d;border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 25px -5px rgba(229,50,45,0.3);margin-bottom:16px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+        </div>
+        <div style="font-size:15px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;">360tools.site</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;font-weight:500;">Loading suite...</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
