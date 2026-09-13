@@ -1,58 +1,86 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, ArrowRight, Globe } from 'lucide-react';
 
-export const News: React.FC = () => {
-  // PYTHON_START
-  const articles = [
-    {
-      id: 'news-1789318351',
-      title: 'Breaking: Global Technology Breakthrough Live Updates',
-      snippet: 'Get real-time global insights, multi-country updates, and complete breakdown of Global Technology Breakthrough.',
-      category: 'Trending',
-      image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=600&q=80',
-      slug: 'global-technology-breakthrough',
-      date: '2026-09-13 16:52'
-    },
-    {
-      id: '1',
-      title: 'Welcome to Global Trending News Hub',
-      snippet: 'Stay updated with the latest technology, web development, and digital trends right from your dashboard.',
-      category: 'Technology',
-      image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=600&q=80',
-      slug: 'welcome-to-news',
-      date: '2026-09-13 12:00'
-    }
-  ];
-  // PYTHON_END
+interface NewsArticle {
+  title: string;
+  slug: string;
+  date: string;
+  description: string;
+  category: string;
+}
+
+export function News() {
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    // Yahan hum site ke news folder ya index se dynamic articles fetch kar sakte hain
+    // Ya agar aap JSON list rakhte hain toh woh load hogi. Filhal yeh real fetch logic hai.
+    fetch('/news/manifest.json')
+      .then((res) => res.json())
+      .then((data) => {
+        setArticles(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        // Agar koi post abhi tak nahi bani toh khali list show hogi (koi dummy post nahi)
+        setArticles([]);
+        setLoading(false);
+      });
+  }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6 text-slate-800">Latest Trending News</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {articles.map((item: any) => (
-          <div key={item.id} className="bg-white rounded-2xl shadow-xs overflow-hidden border border-slate-200 flex flex-col justify-between">
-            <div>
-              <img src={item.image} alt={item.title} className="w-full h-48 object-cover" />
-              <div className="p-5">
-                <span className="text-xs text-[#e5322d] font-bold uppercase tracking-wider">{item.category}</span>
-                <h2 className="text-lg font-bold mt-1 mb-2 text-slate-900">{item.title}</h2>
-                <p className="text-slate-600 text-xs leading-relaxed mb-4">{item.snippet}</p>
-                <span className="text-[10px] text-slate-400 block mb-2">{item.date}</span>
+    <div className="space-y-8 max-w-5xl mx-auto px-4 py-6">
+      <div className="text-center space-y-3">
+        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          Global Trending News Hub
+        </h1>
+        <p className="text-slate-600 text-sm sm:text-base max-w-2xl mx-auto">
+          Real-time AI-generated breaking news across all countries and categories, updated every 30 minutes.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12 text-slate-400 font-medium">Loading live news...</div>
+      ) : articles.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3 shadow-2xs">
+          <Globe className="w-10 h-10 text-slate-400 mx-auto animate-pulse" />
+          <h3 className="text-lg font-bold text-slate-800">No News Posts Yet</h3>
+          <p className="text-slate-500 text-sm max-w-md mx-auto">
+            Your automated GitHub bot is setting up. The first real-time trending news post will appear here shortly!
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {articles.map((art, idx) => (
+            <div key={idx} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between">
+              <div className="space-y-3">
+                <span className="inline-block px-2.5 py-1 bg-red-50 text-[#e5322d] text-[11px] font-bold uppercase tracking-wider rounded-md">
+                  {art.category || 'Trending'}
+                </span>
+                <h2 className="text-xl font-bold text-slate-900 tracking-tight leading-snug">
+                  {art.title}
+                </h2>
+                <p className="text-slate-600 text-sm leading-relaxed">
+                  {art.description}
+                </p>
+              </div>
+              <div className="pt-6 mt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5" />
+                  {art.date}
+                </span>
+                <a
+                  href={`/news/${art.slug}.html`}
+                  className="inline-flex items-center gap-1 font-bold text-[#e5322d] hover:underline"
+                >
+                  Read Full Article <ArrowRight className="w-3.5 h-3.5" />
+                </a>
               </div>
             </div>
-            <div className="p-5 pt-0">
-              <button 
-                onClick={() => alert("Full article view coming soon!")}
-                className="text-[#e5322d] hover:underline font-bold text-xs inline-flex items-center gap-1 cursor-pointer"
-              >
-                Read Full Article &rarr;
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
-
-export default News;
+}
