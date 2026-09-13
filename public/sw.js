@@ -1,29 +1,15 @@
-// 360tools Service Worker for Offline Execution and PWA Installability
-const CACHE_NAME = '360tools-cache-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/assets/icon.svg',
-  '/assets/icon-192.png',
-  '/assets/icon-512.png',
-  '/apple-touch-icon.png'
-];
+// 360tools Service Worker - Ultra-Clean Network-First Strategy
+const CACHE_NAME = '360tools-cache-v3';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch(() => {
-        // Continue even if some individual resources fail in dev
-      });
-    })
-  );
+  // Immediately activate the new service worker without waiting
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
+      // Purge all old caches completely so users never get stuck with stale bundles
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
@@ -31,32 +17,62 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only cache GET requests
-  if (event.request.method !== 'GET') return;
+  const request = event.request;
+  if (request.method !== 'GET') return;
 
-  // Let API or ad requests pass through
-  const url = new URL(event.request.url);
-  if (url.pathname.startsWith('/api/') || url.hostname.includes('google') || url.hostname.includes('doubleclick')) {
+  const url = new URL(request.url);
+
+  // Exclude ads, analytics, search console, and third-party scripts
+  if (
+    url.hostname.includes('professionalsusceptible') ||
+    url.hostname.includes('google') ||
+    url.hostname.includes('doubleclick') ||
+    url.hostname.includes('googlesyndication') ||
+    url.pathname.startsWith('/api/')
+  ) {
     return;
   }
 
+  // For HTML documents and main navigation: ALWAYS NETWORK FIRST
+  // This guarantees users always get the freshest version of the application
+  if (
+    request.mode === 'navigate' ||
+    request.destination === 'document' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('.html')
+  ) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match('/') || caches.match('/index.html');
+        })
+    );
+    return;
+  }
+
+  // For static hashed assets (/assets/index-*.js, /assets/index-*.css): Stale-While-Revalidate
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).then((networkResponse) => {
-        return networkResponse;
-      }).catch(() => {
-        // Offline fallback if needed
-        return caches.match('/');
-      });
+    caches.match(request).then((cachedResponse) => {
+      const fetchPromise = fetch(request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+          }
+          return networkResponse;
+        })
+        .catch(() => cachedResponse);
+
+      return cachedResponse || fetchPromise;
     })
   );
 });
+
