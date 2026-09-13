@@ -6,7 +6,9 @@ interface NativeAdCardProps {
   className?: string;
 }
 
-export const ADSTERRA_NATIVE_BANNER_CODE = `<script async="async" data-cfasync="false" src="https://professionalsusceptible.com/1cd889dea3cd4462595169e7f5655753/invoke.js"></script><div id="container-1cd889dea3cd4462595169e7f5655753"></div>`;
+export const ADSTERRA_NATIVE_BANNER_CODE = `<script async="async" data-cfasync="false" src="https://professionalsusceptible.com/1cd889dea3cd4462595169e7f5655753/invoke.js"></script>
+<div id="container-1cd889dea3cd4462595169e7f5655753"></div>
+`;
 
 export const NativeAdCard: React.FC<NativeAdCardProps> = ({ id, index, className = '' }) => {
   const cardRef = useRef<HTMLDivElement>(null);
