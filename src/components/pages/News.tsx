@@ -1,6 +1,6 @@
 import React from 'react';
 import { newsData } from '../../data/newsData';
-import { AdUnit } from '../AdUnit';
+import { AdSlot } from '../ads/AdSlot';
 
 export const News: React.FC = () => {
   return (
@@ -9,7 +9,7 @@ export const News: React.FC = () => {
       
       {/* Top Banner Ad */}
       <div className="my-4">
-        <AdUnit />
+        <AdSlot />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
@@ -47,7 +47,7 @@ export const News: React.FC = () => {
 
       {/* Bottom Banner Ad */}
       <div className="my-8">
-        <AdUnit />
+        <AdSlot />
       </div>
     </div>
   );
