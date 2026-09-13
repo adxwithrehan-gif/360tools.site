@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // Compatibility guard: ensure window.fetch can be safely assigned by polyfills, ad networks, or extensions
+      // without throwing 'Cannot set property fetch of #<Window> which has only a getter'
+      (function() {
+        try {
+          var target = typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : null;
+          if (target && 'fetch' in target) {
+            var _currentFetch = target.fetch;
+            try {
+              Object.defineProperty(target, 'fetch', {
+                get: function() {
+                  return _currentFetch;
+                },
+                set: function(v) {
+                  _currentFetch = v;
+                },
+                configurable: true,
+                enumerable: true
+              });
+            } catch (_) {}
+          }
+        } catch (_) {}
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>360tools | Online Web Tools & Calculators Suite</title>
+    <meta name="description" content="360tools is an online service to work with PDF, financial, math, developer & media tools completely free and easy to use. Merge PDF, split PDF, compress PDF, calculators and converters." />
+    <meta name="keywords" content="360tools, 360tools.site, ilovepdf, free online tools, merge pdf online free, split pdf, compress pdf under 100kb, jpg to pdf, pdf to word converter editable, loan emi calculator, home loan calculator, bmi calculator, scientific calculator, json formatter validator, qr code generator, web tools" />
+    <meta name="author" content="360tools" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <link rel="canonical" href="https://360tools.site/" />
+    <meta name="theme-color" content="#e5322d" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/assets/icon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="360tools" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://360tools.site/" />
+    <meta property="og:title" content="360tools | Online Web Tools & Calculators Suite" />
+    <meta property="og:description" content="360tools is an online service to work with PDF, financial, math, developer & media tools completely free and easy to use. Merge PDF, split PDF, compress PDF, calculators and converters." />
+    <meta property="og:site_name" content="360tools" />
+    <meta property="og:image" content="https://360tools.site/assets/og-preview.png" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="360tools | Online Web Tools & Calculators Suite" />
+    <meta name="twitter:description" content="360tools is an online service to work with PDF, financial, math, developer & media tools completely free and easy to use. Merge PDF, split PDF, compress PDF, calculators and converters." />
+    <meta name="twitter:image" content="https://360tools.site/assets/og-preview.png" />
+
+    <!-- Preconnect Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-slate-50 text-slate-900 antialiased selection:bg-rose-100 selection:text-rose-900">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

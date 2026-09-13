@@ -1,0 +1,6 @@
+{
+  "name": "360tools.site",
+  "description": "360tools is an online service to work with PDF, financial, math, developer & media tools completely free and easy to use. Merge PDF, split PDF, compress PDF, calculators and converters.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
