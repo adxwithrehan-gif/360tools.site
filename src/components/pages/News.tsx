@@ -1,6 +1,6 @@
 import React from 'react';
 import { newsData } from '../../data/newsData';
-import { AdUnit } from '../../components/AdUnit';
+import { AdUnit } from '../AdUnit';
 
 export const News: React.FC = () => {
   return (
