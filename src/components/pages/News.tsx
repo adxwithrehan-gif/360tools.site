@@ -1,8 +1,19 @@
 import React from 'react';
-import articlesData from '../../data/news.json'; // Python script wali JSON file ko import karna
 
 export const News: React.FC = () => {
-  const articles = articlesData;
+  // PYTHON_START
+  const articles = [
+    {
+      id: '1',
+      title: 'Welcome to Global Trending News Hub',
+      snippet: 'Stay updated with the latest technology, web development, and digital trends right from your dashboard.',
+      category: 'Technology',
+      image: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&w=600&q=80',
+      slug: 'welcome-to-news',
+      date: '2026-09-13 12:00'
+    }
+  ];
+  // PYTHON_END
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
