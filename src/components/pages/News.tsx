@@ -1,5 +1,4 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import { newsData } from '../data/newsData';
 import { AdUnit } from '../components/AdUnit';
 
@@ -26,9 +25,20 @@ export const News: React.FC = () => {
                 </div>
               </div>
               <div className="p-4 pt-0">
-                <Link to={`/news/${item.slug}`} className="text-blue-500 hover:underline font-medium text-sm">
+                <a 
+                  href={`/news/${item.slug}`} 
+                  onClick={(e) => {
+                    if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                      e.preventDefault();
+                      // Agar aapke paas individual article view ka logic hai toh yahan handle karein
+                      // warna standard navigation ya history push state use karein
+                      window.history.pushState({}, '', `/news/${item.slug}`);
+                    }
+                  }}
+                  className="text-blue-500 hover:underline font-medium text-sm"
+                >
                   Read Full Article &rarr;
-                </Link>
+                </a>
               </div>
             </div>
           ))
