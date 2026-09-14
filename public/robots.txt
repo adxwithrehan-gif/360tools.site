@@ -2,12 +2,14 @@ User-agent: *
 Allow: /
 Allow: /tools/
 Allow: /category/
+Allow: /news/
 
 # Googlebot specific optimizations
 User-agent: Googlebot
 Allow: /
 Allow: /tools/
 Allow: /category/
+Allow: /news/
 Allow: /*?tool=*
 Allow: /*?category=*
 Allow: /*?page=*
@@ -17,8 +19,10 @@ User-agent: Bingbot
 Allow: /
 Allow: /tools/
 Allow: /category/
+Allow: /news/
 
 # Crawl Delay & Sitemap
 Crawl-delay: 0
 Sitemap: https://360tools.site/sitemap.xml
+Sitemap: https://360tools.site/sitemap-news.xml
 Host: https://360tools.site

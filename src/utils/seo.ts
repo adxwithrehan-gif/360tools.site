@@ -814,6 +814,173 @@ export function useToolSEO(toolIdOrTool: string | ToolItem | null | undefined) {
   }, [toolIdOrTool]);
 }
 
+/**
+ * Injects Google News & Trends Hub SEO metadata.
+ */
+export function injectNewsSEO(): void {
+  const title = 'Trending News & Live Search Intelligence | 360tools';
+  const description =
+    'Real-time automated search intelligence analysis, emerging tech shifts, and actionable guides for client-side web tools. Updated continuously.';
+  const url = 'https://360tools.site/news';
+
+  document.title = title;
+  setMetaTag('name', 'description', description);
+  setMetaTag('name', 'keywords', 'trending search news, tech trends 2026, web tools news, client side computing, trending search inquiries');
+  setMetaTag('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+
+  setMetaTag('property', 'og:title', title);
+  setMetaTag('property', 'og:description', description);
+  setMetaTag('property', 'og:url', url);
+  setMetaTag('property', 'og:type', 'website');
+  setMetaTag('property', 'og:site_name', '360tools.site');
+  setMetaTag('property', 'og:image', 'https://360tools.site/assets/og-preview.svg');
+
+  setMetaTag('name', 'twitter:card', 'summary_large_image');
+  setMetaTag('name', 'twitter:title', title);
+  setMetaTag('name', 'twitter:description', description);
+  setMetaTag('name', 'twitter:url', url);
+  setMetaTag('name', 'twitter:image', 'https://360tools.site/assets/og-preview.svg');
+
+  setCanonicalUrl(url);
+
+  setJsonLd({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': url,
+        url,
+        name: title,
+        description,
+        publisher: {
+          '@type': 'Organization',
+          name: '360tools',
+          url: 'https://360tools.site',
+          logo: 'https://360tools.site/assets/og-preview.svg',
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: 'https://360tools.site',
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'News & Trends',
+            item: url,
+          },
+        ],
+      },
+    ],
+  });
+}
+
+/**
+ * Injects deep NewsArticle Schema JSON-LD and full Google Search Console compliant tags.
+ */
+export function injectNewsArticleSEO(article: {
+  id: string;
+  title: string;
+  summary: string;
+  imageUrl: string;
+  publishedAt: string;
+  updatedAt: string;
+  author: { name: string };
+  tags: string[];
+  seo: { focusKeyword: string; metaTitle: string; metaDescription: string };
+}): void {
+  const url = `https://360tools.site/news/${article.id}`;
+  const title = `${article.seo.metaTitle || article.title} | 360tools News`;
+  const description = article.seo.metaDescription || article.summary;
+
+  document.title = title;
+  setMetaTag('name', 'description', description);
+  setMetaTag('name', 'keywords', article.tags.join(', '));
+  setMetaTag('name', 'robots', 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
+
+  setMetaTag('property', 'og:title', title);
+  setMetaTag('property', 'og:description', description);
+  setMetaTag('property', 'og:url', url);
+  setMetaTag('property', 'og:type', 'article');
+  setMetaTag('property', 'og:site_name', '360tools.site');
+  setMetaTag('property', 'og:image', article.imageUrl);
+  setMetaTag('property', 'article:published_time', article.publishedAt);
+  setMetaTag('property', 'article:modified_time', article.updatedAt);
+  setMetaTag('property', 'article:author', article.author.name);
+
+  setMetaTag('name', 'twitter:card', 'summary_large_image');
+  setMetaTag('name', 'twitter:title', title);
+  setMetaTag('name', 'twitter:description', description);
+  setMetaTag('name', 'twitter:url', url);
+  setMetaTag('name', 'twitter:image', article.imageUrl);
+
+  setCanonicalUrl(url);
+
+  setJsonLd({
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'NewsArticle',
+        '@id': `${url}#article`,
+        isPartOf: {
+          '@type': 'WebSite',
+          name: '360tools',
+          url: 'https://360tools.site',
+        },
+        headline: article.title,
+        description,
+        image: [article.imageUrl],
+        datePublished: article.publishedAt,
+        dateModified: article.updatedAt,
+        mainEntityOfPage: url,
+        keywords: article.tags.join(', '),
+        author: {
+          '@type': 'Person',
+          name: article.author.name,
+          url: 'https://360tools.site/about',
+        },
+        publisher: {
+          '@type': 'Organization',
+          name: '360tools',
+          url: 'https://360tools.site',
+          logo: {
+            '@type': 'ImageObject',
+            url: 'https://360tools.site/assets/og-preview.svg',
+          },
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: 'https://360tools.site',
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'News',
+            item: 'https://360tools.site/news',
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: article.title,
+            item: url,
+          },
+        ],
+      },
+    ],
+  });
+}
+
 /* ================= Internal DOM Helpers ================= */
 
 function setMetaTag(attr: 'name' | 'property', key: string, content: string): void {

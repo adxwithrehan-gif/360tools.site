@@ -10,8 +10,11 @@ import { NativeAdCard } from './components/ads/NativeAdCard';
 import { ADS_CONFIG } from './config/adsConfig';
 import { InstallShortcutModal } from './components/common/InstallShortcutModal';
 import { usePWAInstall } from './hooks/usePWAInstall';
-import { injectToolSEO, injectCategorySEO, resetDefaultSEO, updateSEOForTool } from './utils/seo';
+import { injectToolSEO, injectCategorySEO, resetDefaultSEO, updateSEOForTool, injectNewsSEO, injectNewsArticleSEO } from './utils/seo';
 import { getToolTheme } from './utils/toolTheme';
+import { NewsHubView } from './components/news/NewsHubView';
+import { NewsArticleView } from './components/news/NewsArticleView';
+import { newsWorkflow } from './services/newsWorkflowEngine';
 import {
   Search,
   Lock,
@@ -31,7 +34,8 @@ import {
   ExternalLink,
   Download,
   Smartphone,
-  Laptop
+  Laptop,
+  Newspaper
 } from 'lucide-react';
 
 export default function App() {
@@ -39,6 +43,8 @@ export default function App() {
   const [currentToolId, setCurrentToolId] = useState<string | null>(null);
   const [currentCategory, setCurrentCategory] = useState<ToolCategory | 'all'>('all');
   const [currentPage, setCurrentPage] = useState<'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact' | null>(null);
+  const [isNewsView, setIsNewsView] = useState<boolean>(false);
+  const [currentNewsSlug, setCurrentNewsSlug] = useState<string | null>(null);
 
   // Search & UI State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -77,9 +83,16 @@ export default function App() {
       let targetToolId: string | null = null;
       let targetCategory: ToolCategory | null = null;
       let targetPage: 'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact' | null = null;
+      let targetNewsSlug: string | null = null;
+      let targetIsNews = false;
 
-      // 1. Path-based routing: /tools/:toolSlug or /tool/:toolSlug
-      if (pathname.startsWith('/tools/')) {
+      // 1. Path-based routing: /news, /news/:slug, /tools/:toolSlug or /tool/:toolSlug
+      if (pathname === '/news') {
+        targetIsNews = true;
+      } else if (pathname.startsWith('/news/')) {
+        targetIsNews = true;
+        targetNewsSlug = decodeURIComponent(pathname.slice('/news/'.length));
+      } else if (pathname.startsWith('/tools/')) {
         targetToolId = decodeURIComponent(pathname.slice('/tools/'.length));
       } else if (pathname.startsWith('/tool/')) {
         targetToolId = decodeURIComponent(pathname.slice('/tool/'.length));
@@ -99,13 +112,19 @@ export default function App() {
         }
       }
 
-      // 2. Query param fallback: ?tool=slug, ?category=cat, ?page=page
-      if (!targetToolId && !targetCategory && !targetPage) {
+      // 2. Query param fallback: ?page=news, ?article=slug, ?tool=slug, ?category=cat, ?page=page
+      if (!targetToolId && !targetCategory && !targetPage && !targetIsNews) {
         const toolParam = searchParams.get('tool');
         const pageParam = searchParams.get('page');
         const catParam = searchParams.get('category');
+        const articleParam = searchParams.get('article');
 
-        if (toolParam) {
+        if (pageParam === 'news') {
+          targetIsNews = true;
+          if (articleParam) {
+            targetNewsSlug = articleParam;
+          }
+        } else if (toolParam) {
           targetToolId = toolParam;
         } else if (pageParam && ['privacy', 'terms', 'disclaimer', 'about', 'contact'].includes(pageParam)) {
           targetPage = pageParam as any;
@@ -115,6 +134,29 @@ export default function App() {
       }
 
       // 3. Apply state and dynamic SEO meta tags
+      if (targetIsNews) {
+        setIsNewsView(true);
+        setCurrentToolId(null);
+        setCurrentPage(null);
+        setCurrentCategory('all');
+        if (targetNewsSlug) {
+          setCurrentNewsSlug(targetNewsSlug);
+          const article = newsWorkflow.getArticleById(targetNewsSlug);
+          if (article) {
+            injectNewsArticleSEO(article);
+          } else {
+            injectNewsSEO();
+          }
+        } else {
+          setCurrentNewsSlug(null);
+          injectNewsSEO();
+        }
+        return;
+      }
+
+      setIsNewsView(false);
+      setCurrentNewsSlug(null);
+
       if (targetToolId) {
         const found = TOOLS.find((t) => t.id === targetToolId);
         if (found) {
@@ -169,7 +211,36 @@ export default function App() {
   }, []);
 
   // Navigation handlers with clean crawlable paths and SEO meta updates
+  const navigateToNews = () => {
+    setIsNewsView(true);
+    setCurrentNewsSlug(null);
+    setCurrentToolId(null);
+    setCurrentPage(null);
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    window.history.pushState({ page: 'news' }, '', '/news');
+    injectNewsSEO();
+  };
+
+  const navigateToNewsArticle = (slug: string) => {
+    setIsNewsView(true);
+    setCurrentNewsSlug(slug);
+    setCurrentToolId(null);
+    setCurrentPage(null);
+    setMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    window.history.pushState({ newsSlug: slug }, '', `/news/${encodeURIComponent(slug)}`);
+    const article = newsWorkflow.getArticleById(slug);
+    if (article) {
+      injectNewsArticleSEO(article);
+    }
+  };
+
   const navigateToTool = (toolId: string) => {
+    setIsNewsView(false);
+    setCurrentNewsSlug(null);
     setCurrentToolId(toolId);
     setCurrentPage(null);
     setMobileMenuOpen(false);
@@ -181,6 +252,8 @@ export default function App() {
   };
 
   const navigateToPage = (page: 'privacy' | 'terms' | 'disclaimer' | 'about' | 'contact') => {
+    setIsNewsView(false);
+    setCurrentNewsSlug(null);
     setCurrentPage(page);
     setCurrentToolId(null);
     setMobileMenuOpen(false);
@@ -192,6 +265,8 @@ export default function App() {
   };
 
   const navigateToCategory = (category: ToolCategory) => {
+    setIsNewsView(false);
+    setCurrentNewsSlug(null);
     setCurrentToolId(null);
     setCurrentPage(null);
     setCurrentCategory(category);
@@ -205,6 +280,8 @@ export default function App() {
   };
 
   const navigateToHome = (category: ToolCategory | 'all' = 'all') => {
+    setIsNewsView(false);
+    setCurrentNewsSlug(null);
     if (category !== 'all') {
       navigateToCategory(category);
       return;
@@ -420,10 +497,25 @@ export default function App() {
                 }
               }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
-                !currentToolId && currentCategory === 'developer' ? 'text-[#e5322d] bg-red-50/70' : ''
+                !currentToolId && currentCategory === 'developer' && !isNewsView ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
             >
               Developer
+            </a>
+            <a
+              href="/news"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToNews();
+                }
+              }}
+              className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] flex items-center gap-1.5 ${
+                isNewsView ? 'text-[#e5322d] bg-red-50/70 font-bold' : ''
+              }`}
+            >
+              <span>News</span>
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
             </a>
             <a
               href="/"
@@ -434,7 +526,7 @@ export default function App() {
                 }
               }}
               className={`px-3 py-2 rounded-lg transition-colors hover:text-[#e5322d] ${
-                !currentToolId && currentCategory === 'all' && !currentPage ? 'text-[#e5322d] bg-red-50/70' : ''
+                !currentToolId && currentCategory === 'all' && !currentPage && !isNewsView ? 'text-[#e5322d] bg-red-50/70' : ''
               }`}
             >
               All Tools
@@ -498,6 +590,26 @@ export default function App() {
               <ChevronRight className="w-4 h-4 text-red-400" />
             </button>
 
+            {/* Mobile News Hub Link */}
+            <a
+              href="/news"
+              onClick={(e) => {
+                if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                  e.preventDefault();
+                  navigateToNews();
+                }
+              }}
+              className="w-full text-left px-3.5 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-bold flex items-center justify-between border border-red-200/80"
+            >
+              <span className="flex items-center gap-2">
+                <Newspaper className="w-4 h-4 text-red-600" />
+                <span>Trending News Hub</span>
+              </span>
+              <span className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-black rounded-full">
+                LIVE
+              </span>
+            </a>
+
             <a
               href="/"
               onClick={(e) => {
@@ -544,8 +656,32 @@ export default function App() {
 
       {/* -------------------- Main Content Container -------------------- */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        {/* VIEW 1: Static Legal / Content Pages */}
-        {currentPage ? (
+        {/* VIEW 0: News View (Hub or Full Article) */}
+        {isNewsView ? (
+          currentNewsSlug ? (
+            (() => {
+              const article = newsWorkflow.getArticleById(currentNewsSlug);
+              return article ? (
+                <NewsArticleView
+                  article={article}
+                  onBack={navigateToNews}
+                  onSelectArticle={navigateToNewsArticle}
+                  onSelectTool={navigateToTool}
+                />
+              ) : (
+                <NewsHubView
+                  onSelectArticle={navigateToNewsArticle}
+                  onBackToHome={() => navigateToHome('all')}
+                />
+              );
+            })()
+          ) : (
+            <NewsHubView
+              onSelectArticle={navigateToNewsArticle}
+              onBackToHome={() => navigateToHome('all')}
+            />
+          )
+        ) : currentPage ? (
           <div className="space-y-6">
             <button
               onClick={() => navigateToHome('all')}
@@ -732,7 +868,7 @@ export default function App() {
       {/* -------------------- iLovePDF Style Footer (Clean, No Ads) -------------------- */}
       <footer className="bg-white border-t border-slate-200/80 mt-16 text-slate-600 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-8">
             {/* Brand column */}
             <div className="col-span-2 space-y-3">
               <div
@@ -909,7 +1045,73 @@ export default function App() {
               </ul>
             </div>
 
-            {/* Col 3: Legal & Company */}
+            {/* Col 3: Trends & Google News */}
+            <div className="space-y-2.5">
+              <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
+                Trends & News
+              </h4>
+              <ul className="space-y-2 text-slate-500">
+                <li>
+                  <a
+                    href="/news"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToNews();
+                      }
+                    }}
+                    className="hover:text-[#e5322d] font-semibold text-red-600 flex items-center gap-1"
+                  >
+                    <span>Live News & In-Depth Reports</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/news"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToNews();
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
+                    Past 7 Days Reports
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/news"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToNews();
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
+                    Global Search Archive
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="/news"
+                    onClick={(e) => {
+                      if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        e.preventDefault();
+                        navigateToNews();
+                      }
+                    }}
+                    className="hover:text-[#e5322d]"
+                  >
+                    Tech & Financial Trends
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Col 4: Legal & Company */}
             <div className="space-y-2.5">
               <h4 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">
                 Company & Legal

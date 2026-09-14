@@ -3,6 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <script>
+      // Defensive shim: Prevent "Cannot set property fetch of #<Window> which has only a getter"
+      // Occurs when browser extensions or iframe sandboxes try to write to read-only window.fetch
+      (function() {
+        try {
+          var _origFetch = window.fetch;
+          var _fetchImpl = _origFetch;
+          Object.defineProperty(window, 'fetch', {
+            configurable: true,
+            enumerable: true,
+            get: function() {
+              return _fetchImpl || _origFetch;
+            },
+            set: function(fn) {
+              _fetchImpl = fn;
+            }
+          });
+        } catch (_) {}
+      })();
+
       // Single Page Apps for GitHub Pages: Clean deep link rehydration from 404.html redirect
       (function(l) {
         if (l.search && l.search.charAt(1) === '/') {
@@ -60,6 +79,11 @@
     <script>
       // Global uncaught error listener to aid debugging and catch extension issues
       window.addEventListener('error', function(e) {
+        var msg = (e && (e.message || (e.error && e.error.message))) || '';
+        if (typeof msg === 'string' && (msg.indexOf('Cannot set property fetch') !== -1 || (msg.indexOf('fetch') !== -1 && msg.indexOf('getter') !== -1))) {
+          if (e.preventDefault) e.preventDefault();
+          return;
+        }
         console.error('360tools Top-level Runtime Error:', e.error || e.message);
       });
 
