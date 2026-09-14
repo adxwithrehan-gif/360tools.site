@@ -2,8 +2,8 @@ name: Automated AI Newsroom Sync (NewsAPI + Gemini)
 
 on:
   schedule:
-    # Runs every 6 hours automatically to pull fresh breaking stories and generate AI articles
-    - cron: '0 */6 * * *'
+    # Runs every 30 minutes automatically to pull fresh breaking stories
+    - cron: '*/30 * * * *'
   workflow_dispatch: # Allows manual one-click trigger from GitHub Actions tab
 
 permissions:
@@ -20,7 +20,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm install
