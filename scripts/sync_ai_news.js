@@ -297,8 +297,13 @@ Return STRICTLY valid JSON with no markdown formatting around it, matching this 
   "metaDescription": "SEO Meta Description (145-160 chars)"
 }`;
 
-  // Try primary model (gemini-2.5-flash) and fallbacks (gemini-2.5-pro, gemini-3.8-flash)
-  const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-3.8-flash'];
+  // Try active, supported models: gemini-flash-latest, gemini-3.1-flash-lite, gemini-3.1-pro-preview, gemini-3.8-flash
+  const candidateModels = [
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite',
+    'gemini-3.1-pro-preview',
+    'gemini-3.8-flash'
+  ];
   let responseText = null;
 
   for (const modelName of candidateModels) {
@@ -446,7 +451,7 @@ async function main() {
         }
       }
     });
-    console.log('[AI Newsroom] Initialized Google Gemini client with @google/genai (model: gemini-3.8-flash)');
+    console.log('[AI Newsroom] Initialized Google Gemini client with @google/genai (active models: gemini-flash-latest, gemini-3.1-flash-lite, gemini-3.8-flash)');
   }
 
   const headlines = await fetchMultiSourceHeadlines();
