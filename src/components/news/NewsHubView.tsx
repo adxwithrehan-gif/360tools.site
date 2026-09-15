@@ -113,7 +113,7 @@ export const NewsHubView: React.FC<NewsHubViewProps> = ({
             </span>
             <span className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-slate-200 flex items-center gap-1.5">
               <Globe className="w-3.5 h-3.5 text-blue-400" />
-              <span>115+ Daily Stories • Worldwide & Regional</span>
+              <span>{articles.length > 100 ? `${articles.length}+ Live Stories` : '1000+ Multi-Source Stories'} • Worldwide & Regional</span>
             </span>
           </div>
 

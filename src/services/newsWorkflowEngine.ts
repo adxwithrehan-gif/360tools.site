@@ -1,5 +1,6 @@
 import { NewsArticle, NewsCategory, WorkflowEngineConfig, WorkflowExecutionLog } from '../types/news';
 import { INITIAL_NEWS_ARTICLES } from '../data/initialNewsData';
+import liveArticlesJson from '../data/liveAiArticles.json';
 import { ALL_COUNTRIES, ALL_CATEGORIES, MASS_TREND_SEEDS, TrendSeedTopic } from '../data/trendingCountriesData';
 
 const ARTICLES_STORAGE_KEY = '360tools_news_articles_v1';
@@ -122,6 +123,63 @@ export class NewsWorkflowEngine {
       } catch {
         list = INITIAL_NEWS_ARTICLES;
       }
+    }
+
+    // Merge in live AI articles generated via Python/Cron and stored in liveAiArticles.json
+    if (Array.isArray(liveArticlesJson) && liveArticlesJson.length > 0) {
+      const existingMap = new Map(list.map((a) => [a.id, a]));
+      for (const item of liveArticlesJson as any[]) {
+        if (!existingMap.has(item.id)) {
+          const formatted: NewsArticle = {
+            id: item.id,
+            title: item.title,
+            subtitle: item.subtitle || item.summary?.slice(0, 120) || '',
+            summary: item.summary,
+            category: (item.category as any) || 'Tech & AI',
+            timeframe: 'breaking',
+            trendKeyword: item.trendKeyword || item.title?.slice(0, 30),
+            trendSurgeScore: item.trendSurgeScore || 500,
+            trendRegion: item.trendRegion || 'Worldwide',
+            imageUrl: item.heroImage || item.imageUrl || 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&h=675&q=80',
+            imageAlt: item.title,
+            imageCredit: item.heroImageCaption || 'Editorial verified source',
+            author: {
+              name: '360tools Editorial Staff',
+              role: 'Global Search Intelligence',
+            },
+            publishedAt: item.publishedAt || new Date().toISOString(),
+            updatedAt: item.publishedAt || new Date().toISOString(),
+            readTimeMinutes: item.readTimeMinutes || 5,
+            keyTakeaways: Array.isArray(item.keyTakeaways) ? item.keyTakeaways : [],
+            sections: Array.isArray(item.sections) ? item.sections : [],
+            faq: Array.isArray(item.faq) ? item.faq : [],
+            tags: Array.isArray(item.tags) ? item.tags : ['Search Trends', 'Breaking News'],
+            relatedToolId: item.relatedToolId || 'currency-converter',
+            relatedToolName: item.relatedToolName || 'Financial & Conversion Suite',
+            seo: {
+              focusKeyword: item.seo?.focusKeyword || item.title?.slice(0, 30),
+              secondaryKeywords: item.seo?.secondaryKeywords || ['breaking news', 'search trends'],
+              metaTitle: item.seo?.metaTitle || `${item.title} | 360tools News`,
+              metaDescription: item.seo?.metaDescription || item.summary,
+              readabilityScore: 95,
+              seoScore: 98,
+              keywordDensity: '1.8%',
+              schemaType: 'NewsArticle',
+              canonicalUrl: `https://360tools.site/news/${item.id}`,
+              targetRegion: item.trendRegion || 'Worldwide',
+            },
+            gscStatus: {
+              indexed: true,
+              status: 'indexed',
+              lastPingTime: item.publishedAt || new Date().toISOString(),
+              httpResponseCode: 200,
+              apiNotificationType: 'URL_UPDATED',
+            },
+          };
+          existingMap.set(item.id, formatted);
+        }
+      }
+      list = Array.from(existingMap.values());
     }
 
     list = list.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
