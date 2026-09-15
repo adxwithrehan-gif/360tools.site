@@ -39,53 +39,126 @@ function pickMatchingTool(text) {
   return { id: 'currency-converter', name: 'Financial & Conversion Suite' };
 }
 
-async function fetchNewsApiHeadlines() {
-  if (!NEWS_API_KEY) {
-    console.log('[AI Newsroom] NEWS_API_KEY missing, using trending tech and finance focus topics.');
-    return [
-      {
-        title: 'Global Central Banks Signal Coordinated Digital Currency Protocols and Privacy Standards',
-        description: 'Monetary authorities and financial regulators initiate phased adoption of verifiable instant settlement corridors.',
-        country: 'Worldwide',
-        category: 'Finance & Markets'
-      },
-      {
-        title: 'Open-Weights AI Developer Models Deliver Milestone Reductions in Local Hardware Memory Footprints',
-        description: 'New quantisation techniques and browser-native inference models remove high GPU barriers for everyday software engineers.',
-        country: 'United States',
-        category: 'Tech & AI'
-      },
-      {
-        title: 'Cross-Border Freelance Remittance Rates Shift Under Updated Interbank Settlement Guidelines',
-        description: 'Regional freelance developers and exporters across South Asia and the Middle East monitor forex conversion adjustments.',
-        country: 'Pakistan',
-        category: 'Finance & Markets'
-      }
-    ];
-  }
+// Multi-source RSS feeds across Google Trends, Bing News, and MSN/Google News categories
+const FEED_SOURCES = [
+  // Google Trends Real-Time Trending Searches
+  { name: 'Google Trends (US)', url: 'https://trends.google.com/trending/rss?geo=US', category: 'Tech & Trends' },
+  { name: 'Google Trends (Global)', url: 'https://trends.google.com/trending/rss?geo=GB', category: 'Tech & Trends' },
+  // Bing News Endpoints across all major categories
+  { name: 'Bing News Tech', url: 'https://www.bing.com/news/search?q=technology+ai+software&format=rss', category: 'Tech & AI' },
+  { name: 'Bing News Business', url: 'https://www.bing.com/news/search?q=business+finance+economy&format=rss', category: 'Finance & Markets' },
+  { name: 'Bing News World', url: 'https://www.bing.com/news/search?q=world+news+global&format=rss', category: 'World & Economy' },
+  { name: 'Bing News Entertainment', url: 'https://www.bing.com/news/search?q=entertainment+gaming+culture&format=rss', category: 'Entertainment' },
+  { name: 'Bing News Sports', url: 'https://www.bing.com/news/search?q=sports+championship+fitness&format=rss', category: 'Sports & Health' },
+  // MSN / Google News Topic Feeds
+  { name: 'Google News World', url: 'https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en', category: 'World & Economy' },
+  { name: 'Google News Tech', url: 'https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en', category: 'Tech & AI' },
+  { name: 'Google News Business', url: 'https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=en-US&gl=US&ceid=US:en', category: 'Finance & Markets' },
+  { name: 'Google News Entertainment', url: 'https://news.google.com/rss/headlines/section/topic/ENTERTAINMENT?hl=en-US&gl=US&ceid=US:en', category: 'Entertainment' },
+  { name: 'Google News Sports', url: 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=en-US&gl=US&ceid=US:en', category: 'Sports & Health' },
+];
 
+function cleanXmlText(text) {
+  if (!text) return '';
+  return text
+    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .trim();
+}
+
+async function fetchFromRssFeed(feed) {
   try {
-    const url = `https://newsapi.org/v2/top-headlines?category=technology&language=en&pageSize=5&apiKey=${NEWS_API_KEY}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.status === 'ok' && Array.isArray(data.articles) && data.articles.length > 0) {
-      console.log(`[AI Newsroom] Retrieved ${data.articles.length} breaking articles from NewsAPI.`);
-      return data.articles.filter(a => a.title && a.title !== '[Removed]').map(a => ({
-        title: a.title,
-        description: a.description || a.content || '',
-        url: a.url,
-        urlToImage: a.urlToImage,
-        country: 'Worldwide',
-        category: 'Tech & AI'
-      }));
-    } else {
-      console.warn('[AI Newsroom] NewsAPI response message:', data.message || 'No articles returned');
+    const res = await fetch(feed.url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const items = [];
+    const itemMatches = xml.match(/<item>[\s\S]*?<\/item>/gi) || [];
+
+    for (const itemXml of itemMatches.slice(0, 4)) {
+      const titleMatch = itemXml.match(/<title>([\s\S]*?)<\/title>/i);
+      const descMatch = itemXml.match(/<description>([\s\S]*?)<\/description>/i);
+      const linkMatch = itemXml.match(/<link>([\s\S]*?)<\/link>/i);
+
+      const title = cleanXmlText(titleMatch ? titleMatch[1] : '');
+      const description = cleanXmlText(descMatch ? descMatch[1] : '');
+      const link = linkMatch ? linkMatch[1].trim() : '';
+
+      if (title && title.length > 15 && !title.toLowerCase().includes('google news')) {
+        items.push({
+          title,
+          description: description || title,
+          url: link,
+          category: feed.category,
+          country: 'Worldwide',
+          source: feed.name
+        });
+      }
     }
+    return items;
   } catch (err) {
-    console.error('[AI Newsroom] Error fetching NewsAPI:', err.message);
+    return [];
+  }
+}
+
+async function fetchMultiSourceHeadlines() {
+  console.log('[AI Newsroom] Pulling live trends from Google Trends, Bing News, and MSN across ALL categories...');
+  const allCandidates = [];
+  const seenTitles = new Set();
+
+  // 1. Fetch from multi-source RSS feeds
+  for (const feed of FEED_SOURCES) {
+    const items = await fetchFromRssFeed(feed);
+    for (const item of items) {
+      const normalized = item.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
+      if (!seenTitles.has(normalized)) {
+        seenTitles.add(normalized);
+        allCandidates.push(item);
+      }
+    }
   }
 
-  return [];
+  // 2. Fetch from NewsAPI if key is available
+  if (NEWS_API_KEY) {
+    try {
+      const categories = ['technology', 'business', 'general', 'entertainment', 'sports'];
+      const randomCat = categories[Math.floor(Math.random() * categories.length)];
+      const url = `https://newsapi.org/v2/top-headlines?category=${randomCat}&language=en&pageSize=6&apiKey=${NEWS_API_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.status === 'ok' && Array.isArray(data.articles)) {
+        for (const a of data.articles) {
+          if (a.title && a.title !== '[Removed]') {
+            const normalized = a.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 35);
+            if (!seenTitles.has(normalized)) {
+              seenTitles.add(normalized);
+              allCandidates.push({
+                title: a.title,
+                description: a.description || a.content || a.title,
+                url: a.url,
+                urlToImage: a.urlToImage,
+                country: 'Worldwide',
+                category: a.category || 'Tech & AI',
+                source: 'NewsAPI'
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[AI Newsroom] NewsAPI fetch failed:', err.message);
+    }
+  }
+
+  console.log(`[AI Newsroom] Successfully aggregated ${allCandidates.length} cross-category topics.`);
+  return allCandidates;
 }
 
 async function generateGeminiArticle(gemini, item) {
@@ -288,7 +361,7 @@ async function main() {
     console.log('[AI Newsroom] Initialized Google Gemini client with @google/genai (model: gemini-3.8-flash)');
   }
 
-  const headlines = await fetchNewsApiHeadlines();
+  const headlines = await fetchMultiSourceHeadlines();
   if (headlines.length === 0) {
     console.log('[AI Newsroom] No headlines to process.');
     return;
